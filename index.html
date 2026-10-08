@@ -44,6 +44,12 @@
     /* Tab content toggling */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    
+    .chart-box { position: relative; height: 220px; width: 100%; }
+
+    /* Analytics messages */
+    .chart-note { font-size: 12px; color: #888; text-align: center; margin-top: 8px; }
+    .chart-error { color: #b91c1c; font-size: 13px; text-align: center; }
   </style>
 </head>
 <body>
@@ -59,7 +65,7 @@
   
   <!-- SUMMARY DASHBOARD -->
   <div class="card">
-    <h2>🍼 Twin Summary</h2>
+    <h2>🍼 Today's Summary</h2>
     <div class="dashboard">
       <div class="stat-box">
         <h4>Margot</h4>
@@ -132,19 +138,28 @@
 
 <!-- TAB 2: ANALYTICS -->
 <div id="analytics-tab" class="tab-content">
+  <div id="analytics-message"></div>
+
   <div class="card">
     <h3>📅 Daily Totals (Last 7 Days)</h3>
-    <canvas id="weeklyChart"></canvas>
+    <div class="chart-box">
+      <canvas id="weeklyChart"></canvas>
+    </div>
+    <div class="chart-note" id="weekly-note"></div>
   </div>
 
   <div class="card">
     <h3>🍼 Today's Feeds by Hour (ml)</h3>
-    <canvas id="feedChart"></canvas>
+    <div class="chart-box">
+      <canvas id="feedChart"></canvas>
+    </div>
   </div>
   
   <div class="card">
     <h3>👶 Nappy Changes Today</h3>
-    <canvas id="nappyChart"></canvas>
+    <div class="chart-box">
+      <canvas id="nappyChart"></canvas>
+    </div>
   </div>
 </div>
 
@@ -190,32 +205,65 @@
     btn.classList.add('active');
 
     if (tabId === 'analytics-tab') {
-      renderAnalyticsCharts();
+      // Wait a frame so the tab is visible (and has real dimensions) before drawing charts
+      requestAnimationFrame(renderAnalyticsCharts);
     }
   }
 
-  // Time String Parsing Helper
-  function parseTimeString(timeVal) {
-    if (typeof timeVal === 'string' && timeVal.includes('T')) {
-      const d = new Date(timeVal);
-      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  // Universal UK Date Normalizer (Outputs DD/MM/YYYY)
+  function normalizeDateStr(val) {
+    if (!val) return "";
+
+    if (val instanceof Date) {
+      return `${String(val.getDate()).padStart(2,'0')}/${String(val.getMonth()+1).padStart(2,'0')}/${val.getFullYear()}`;
     }
-    return String(timeVal);
+
+    let str = String(val).trim();
+
+    // ISO format, e.g. 2026-10-05 or 2026-10-05T00:00:00.000Z (take the date part as written)
+    const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+
+    // d/m/y or dd/mm/yyyy
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      const d = parts[0].trim().padStart(2, '0');
+      const m = parts[1].trim().padStart(2, '0');
+      let y = parts[2].trim();
+      if (y.length === 2) y = '20' + y;
+      return `${d}/${m}/${y}`;
+    }
+
+    return str;
+  }
+
+  // Extract HH:MM string from time cell
+  function parseTimeString(timeVal) {
+    if (!timeVal) return "";
+    let str = String(timeVal).trim();
+    const match = str.match(/(\d{1,2}):(\d{2})/);
+    if (match) {
+      let h = match[1].padStart(2, '0');
+      let m = match[2].padStart(2, '0');
+      return `${h}:${m}`;
+    }
+    return str;
   }
 
   function formatLastFeed(timeStr) {
     if (!timeStr) return "Last: None";
-    const parts = timeStr.split(':');
-    if (parts.length < 2) return `Last: ${timeStr}`;
+    const parsed = parseTimeString(timeStr);
+    const parts = parsed.split(':');
+    if (parts.length < 2) return `Last: ${parsed}`;
     
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     
     const last = new Date();
-    last.setHours(h, m, 0);
+    last.setHours(h, m, 0, 0);
     
     const diffMs = new Date() - last;
-    if (diffMs < 0) return `Last: ${timeStr}`;
+    if (diffMs < 0) return `Last: ${parsed}`;
     
     const diffMins = Math.floor(diffMs / 60000);
     const hrs = Math.floor(diffMins / 60);
@@ -233,18 +281,31 @@
         let totals = { Margot: 0, Marshall: 0 };
         let lastFeeds = { Margot: null, Marshall: null };
 
+        let latestDateInSheet = "";
+        for (let i = data.length - 1; i >= 1; i--) {
+          let dateStr = normalizeDateStr(data[i][0]).trim(); // Column 0: Date
+          if (dateStr && dateStr.includes('/')) {
+            latestDateInSheet = dateStr;
+            break;
+          }
+        }
+
+        const todayStr = normalizeDateStr(new Date()).trim();
+
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
-          const twin = String(row[1]).trim();
-          const timeVal = row[2];
-          const amount = Number(row[4]) || 0;
+          const dateVal = normalizeDateStr(row[0]).trim(); // Column 0: Date
+          const twin = String(row[1]).trim();       // Column 1: Twin
+          const timeVal = row[2];                   // Column 2: Time
+          const amount = Number(row[4]) || 0;       // Column 4: Amount
 
-          if (totals.hasOwnProperty(twin)) {
-            totals[twin] += amount;
-          }
-
-          if (twin && timeVal) {
-            lastFeeds[twin] = parseTimeString(timeVal);
+          if (dateVal === todayStr || dateVal === latestDateInSheet) {
+            if (totals.hasOwnProperty(twin)) {
+              totals[twin] += amount;
+            }
+            if (twin && timeVal) {
+              lastFeeds[twin] = parseTimeString(timeVal);
+            }
           }
         }
 
@@ -257,28 +318,46 @@
       .catch(err => console.error("Error fetching summary:", err));
   }
 
+  function showAnalyticsMessage(html) {
+    document.getElementById('analytics-message').innerHTML = html
+      ? `<div class="card chart-error">${html}</div>`
+      : '';
+  }
+
   // Render Charts for Analytics Tab
   function renderAnalyticsCharts() {
+    showAnalyticsMessage('');
+
+    if (typeof Chart === 'undefined') {
+      showAnalyticsMessage('Chart library failed to load. Check your internet connection and reload.');
+      return;
+    }
+
     fetch(WEB_APP_URL, { redirect: "follow" })
       .then(res => res.json())
       .then(data => {
-        if (!data || data.length <= 1) return;
+        if (!Array.isArray(data) || data.length <= 1) {
+          showAnalyticsMessage('No data returned from the sheet yet.');
+          return;
+        }
 
-        // 1. Prepare Last 7 Days Date Range
-        const last7Days = [];
+        const last7DaysKeys = [];
+        const dayLabels = [];
         const margot7DayTotals = {};
         const marshall7DayTotals = {};
 
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          const dateKey = d.toLocaleDateString("en-GB"); // DD/MM/YYYY
-          last7Days.push(dateKey);
-          margot7DayTotals[dateKey] = 0;
-          marshall7DayTotals[dateKey] = 0;
+          const fullKey = normalizeDateStr(d).trim();
+          const labelKey = fullKey.slice(0, 5);
+          
+          last7DaysKeys.push(fullKey);
+          dayLabels.push(labelKey);
+          margot7DayTotals[fullKey] = 0;
+          marshall7DayTotals[fullKey] = 0;
         }
 
-        // Today Data Structures
         let hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         let margotFeeds = new Array(24).fill(0);
         let marshallFeeds = new Array(24).fill(0);
@@ -288,62 +367,79 @@
           Marshall: { Wet: 0, "Wet & Dirty": 0 }
         };
 
-        for (let i = 1; i < data.length; i++) {
-          const row = data[i];
-          const dateVal = row[0];
-          const twin = String(row[1]).trim();
-          const timeVal = row[2];
-          const amount = Number(row[4]) || 0;
-          const nappy = String(row[5]).trim();
-
-          // Standardize Row Date String (DD/MM/YYYY)
-          let rowDateStr = "";
-          if (dateVal) {
-            rowDateStr = new Date(dateVal).toLocaleDateString("en-GB");
-          }
-
-          // Accumulate for 7-Day History
-          if (margot7DayTotals.hasOwnProperty(rowDateStr) && twin === 'Margot') {
-            margot7DayTotals[rowDateStr] += amount;
-          }
-          if (marshall7DayTotals.hasOwnProperty(rowDateStr) && twin === 'Marshall') {
-            marshall7DayTotals[rowDateStr] += amount;
-          }
-
-          // Hourly Feed & Nappy processing for today
-          const timeStr = parseTimeString(timeVal);
-          const hour = parseInt(timeStr.split(':')[0], 10);
-          
-          if (!isNaN(hour) && hour >= 0 && hour < 24) {
-            if (twin === 'Margot') margotFeeds[hour] += amount;
-            if (twin === 'Marshall') marshallFeeds[hour] += amount;
-          }
-
-          if (nappies[twin] && nappies[twin][nappy] !== undefined) {
-            nappies[twin][nappy]++;
+        let latestDateInSheet = "";
+        for (let i = data.length - 1; i >= 1; i--) {
+          let dateStr = normalizeDateStr(data[i][0]).trim(); // Column 0: Date
+          if (dateStr && dateStr.includes('/')) {
+            latestDateInSheet = dateStr;
+            break;
           }
         }
+
+        const todayStr = normalizeDateStr(new Date()).trim();
+        let matchedRows = 0;
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const dateVal = normalizeDateStr(row[0]).trim(); // Column 0: Date
+          const twin = String(row[1]).trim();       // Column 1: Twin
+          const timeVal = row[2];                   // Column 2: Time
+          const amount = Number(row[4]) || 0;       // Column 4: Amount
+          const nappy = String(row[5]).trim();      // Column 5: Nappy
+
+          if (Object.prototype.hasOwnProperty.call(margot7DayTotals, dateVal)) {
+            matchedRows++;
+            if (twin === 'Margot') margot7DayTotals[dateVal] += amount;
+            if (twin === 'Marshall') marshall7DayTotals[dateVal] += amount;
+          }
+
+          if (dateVal === todayStr || dateVal === latestDateInSheet) {
+            const timeStr = parseTimeString(timeVal);
+            const hour = parseInt(timeStr.split(':')[0], 10);
+            
+            if (!isNaN(hour) && hour >= 0 && hour < 24) {
+              if (twin === 'Margot') margotFeeds[hour] += amount;
+              if (twin === 'Marshall') marshallFeeds[hour] += amount;
+            }
+
+            if (nappies[twin] && nappies[twin][nappy] !== undefined) {
+              nappies[twin][nappy]++;
+            }
+          }
+        }
+
+        // Diagnostic note under the daily totals chart
+        const note = document.getElementById('weekly-note');
+        if (matchedRows === 0) {
+          const sample = data[1] ? String(data[1][0]) : '(none)';
+          note.innerText = `No rows matched the last 7 days. First date in sheet reads: "${sample}", looking for e.g. "${last7DaysKeys[6]}".`;
+          note.style.color = '#b91c1c';
+        } else {
+          note.innerText = '';
+        }
+
+        const margot7Data = last7DaysKeys.map(k => margot7DayTotals[k]);
+        const marshall7Data = last7DaysKeys.map(k => marshall7DayTotals[k]);
 
         if (feedChartInstance) feedChartInstance.destroy();
         if (nappyChartInstance) nappyChartInstance.destroy();
         if (weeklyChartInstance) weeklyChartInstance.destroy();
 
-        // CHART 1: 7-Day History Chart (Line/Bar)
-        const dayLabels = last7Days.map(d => d.slice(0, 5)); // Show DD/MM
+        // CHART 1: 7-Day History Chart
         const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
         weeklyChartInstance = new Chart(ctxWeekly, {
           type: 'bar',
           data: {
             labels: dayLabels,
             datasets: [
-              { label: 'Margot (ml)', data: last7Days.map(d => margot7DayTotals[d]), backgroundColor: '#ec4899' },
-              { label: 'Marshall (ml)', data: last7Days.map(d => marshall7DayTotals[d]), backgroundColor: '#3b82f6' }
+              { label: 'Margot (ml)', data: margot7Data, backgroundColor: '#ec4899' },
+              { label: 'Marshall (ml)', data: marshall7Data, backgroundColor: '#3b82f6' }
             ]
           },
-          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
 
-        // CHART 2: Hourly Feed Chart
+        // CHART 2: Today's Hourly Feed Chart
         const ctxFeed = document.getElementById('feedChart').getContext('2d');
         feedChartInstance = new Chart(ctxFeed, {
           type: 'bar',
@@ -354,10 +450,10 @@
               { label: 'Marshall (ml)', data: marshallFeeds, backgroundColor: '#3b82f6' }
             ]
           },
-          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
 
-        // CHART 3: Nappy Chart
+        // CHART 3: Today's Nappy Chart
         const ctxNappy = document.getElementById('nappyChart').getContext('2d');
         nappyChartInstance = new Chart(ctxNappy, {
           type: 'bar',
@@ -368,10 +464,19 @@
               { label: 'Marshall', data: [nappies.Marshall.Wet, nappies.Marshall["Wet & Dirty"]], backgroundColor: '#3b82f6' }
             ]
           },
-          options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
         });
+
+        setTimeout(() => {
+          weeklyChartInstance.resize();
+          feedChartInstance.resize();
+          nappyChartInstance.resize();
+        }, 50);
       })
-      .catch(err => console.error("Error rendering charts:", err));
+      .catch(err => {
+        console.error("Error rendering charts:", err);
+        showAnalyticsMessage(`Chart error: ${err.message}`);
+      });
   }
 
   // Initial load
