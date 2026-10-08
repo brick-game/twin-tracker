@@ -133,6 +133,11 @@
 <!-- TAB 2: ANALYTICS -->
 <div id="analytics-tab" class="tab-content">
   <div class="card">
+    <h3>📅 Daily Totals (Last 7 Days)</h3>
+    <canvas id="weeklyChart"></canvas>
+  </div>
+
+  <div class="card">
     <h3>🍼 Today's Feeds by Hour (ml)</h3>
     <canvas id="feedChart"></canvas>
   </div>
@@ -148,6 +153,7 @@
 
   let feedChartInstance = null;
   let nappyChartInstance = null;
+  let weeklyChartInstance = null;
 
   // Populate Hour Wheel (00 - 23)
   const hourWheel = document.getElementById('hourWheel');
@@ -258,6 +264,21 @@
       .then(data => {
         if (!data || data.length <= 1) return;
 
+        // 1. Prepare Last 7 Days Date Range
+        const last7Days = [];
+        const margot7DayTotals = {};
+        const marshall7DayTotals = {};
+
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateKey = d.toLocaleDateString("en-GB"); // DD/MM/YYYY
+          last7Days.push(dateKey);
+          margot7DayTotals[dateKey] = 0;
+          marshall7DayTotals[dateKey] = 0;
+        }
+
+        // Today Data Structures
         let hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
         let margotFeeds = new Array(24).fill(0);
         let marshallFeeds = new Array(24).fill(0);
@@ -269,11 +290,27 @@
 
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
+          const dateVal = row[0];
           const twin = String(row[1]).trim();
           const timeVal = row[2];
           const amount = Number(row[4]) || 0;
           const nappy = String(row[5]).trim();
 
+          // Standardize Row Date String (DD/MM/YYYY)
+          let rowDateStr = "";
+          if (dateVal) {
+            rowDateStr = new Date(dateVal).toLocaleDateString("en-GB");
+          }
+
+          // Accumulate for 7-Day History
+          if (margot7DayTotals.hasOwnProperty(rowDateStr) && twin === 'Margot') {
+            margot7DayTotals[rowDateStr] += amount;
+          }
+          if (marshall7DayTotals.hasOwnProperty(rowDateStr) && twin === 'Marshall') {
+            marshall7DayTotals[rowDateStr] += amount;
+          }
+
+          // Hourly Feed & Nappy processing for today
           const timeStr = parseTimeString(timeVal);
           const hour = parseInt(timeStr.split(':')[0], 10);
           
@@ -289,8 +326,24 @@
 
         if (feedChartInstance) feedChartInstance.destroy();
         if (nappyChartInstance) nappyChartInstance.destroy();
+        if (weeklyChartInstance) weeklyChartInstance.destroy();
 
-        // 1. Feeding Chart
+        // CHART 1: 7-Day History Chart (Line/Bar)
+        const dayLabels = last7Days.map(d => d.slice(0, 5)); // Show DD/MM
+        const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
+        weeklyChartInstance = new Chart(ctxWeekly, {
+          type: 'bar',
+          data: {
+            labels: dayLabels,
+            datasets: [
+              { label: 'Margot (ml)', data: last7Days.map(d => margot7DayTotals[d]), backgroundColor: '#ec4899' },
+              { label: 'Marshall (ml)', data: last7Days.map(d => marshall7DayTotals[d]), backgroundColor: '#3b82f6' }
+            ]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        // CHART 2: Hourly Feed Chart
         const ctxFeed = document.getElementById('feedChart').getContext('2d');
         feedChartInstance = new Chart(ctxFeed, {
           type: 'bar',
@@ -304,7 +357,7 @@
           options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
 
-        // 2. Nappy Chart
+        // CHART 3: Nappy Chart
         const ctxNappy = document.getElementById('nappyChart').getContext('2d');
         nappyChartInstance = new Chart(ctxNappy, {
           type: 'bar',
