@@ -2,173 +2,302 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#fdf2f8">
   <title>Twin Feed & Nappy Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Chart.js for Graphic Visualizations -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 440px; margin: auto; background-color: #f0f2f5; color: #333; }
-    
-    /* Navigation Tabs */
-    .tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
-    .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; background: #e0e6ed; font-weight: bold; cursor: pointer; color: #555; font-size: 15px; transition: all 0.2s; }
-    .tab-btn.active { background: #2563eb; color: white; }
+    :root {
+      --bg1: #fdf2f8;
+      --bg2: #eff6ff;
+      --card: rgba(255, 255, 255, 0.82);
+      --card-solid: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e9e5f0;
+      --chip: #ece9f5;
+      --input: #ffffff;
+      --margot: #ec4899;
+      --margot-soft: #fce7f3;
+      --marshall: #3b82f6;
+      --marshall-soft: #dbeafe;
+      --accent: #7c3aed;
+      --shadow: 0 10px 30px rgba(124, 58, 237, 0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg1: #1a1033;
+        --bg2: #0f1b3d;
+        --card: rgba(30, 27, 60, 0.82);
+        --card-solid: #2a2552;
+        --text: #f1f5f9;
+        --muted: #a5b0c8;
+        --line: #3a3566;
+        --chip: #26224a;
+        --input: #231f47;
+        --margot-soft: #4a1d3d;
+        --marshall-soft: #1e3a6b;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
 
-    .card { background: white; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-    h2, h3 { margin-top: 0; text-align: center; color: #222; }
-    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 18px 16px calc(28px + env(safe-area-inset-bottom));
+      min-height: 100vh;
+      color: var(--text);
+      background: linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+    }
+    .app { max-width: 440px; margin: auto; }
+
+    /* Hero header */
+    .hero { text-align: center; margin: 4px 0 18px; }
+    .hero-emoji { font-size: 34px; line-height: 1; }
+    .hero h1 {
+      margin: 6px 0 2px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--margot), var(--accent), var(--marshall));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 700; }
+
+    /* Navigation Tabs */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; padding: 5px; background: var(--chip); border-radius: 18px; }
+    .tab-btn {
+      flex: 1; padding: 11px; border: none; border-radius: 14px; background: transparent;
+      font-family: inherit; font-weight: 800; cursor: pointer; color: var(--muted); font-size: 15px; transition: all 0.2s;
+    }
+    .tab-btn.active { background: var(--card-solid); color: var(--accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10); }
+
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      padding: 20px; border-radius: 24px; box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.5); margin-bottom: 16px;
+    }
+    h2, h3 { margin: 0 0 14px; text-align: center; color: var(--text); font-weight: 900; letter-spacing: -0.3px; }
+    h2 { font-size: 19px; } h3 { font-size: 17px; }
+
     /* Stats Header */
-    .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
-    .stat-box { background: #eef2fe; padding: 12px; border-radius: 12px; text-align: center; }
-    .stat-box h4 { margin: 0 0 5px 0; color: #3b5998; font-size: 15px; }
-    .stat-val { font-size: 18px; font-weight: bold; color: #111; }
-    .stat-sub { font-size: 12px; color: #666; margin-top: 4px; }
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-box { padding: 14px 10px 12px; border-radius: 18px; text-align: center; position: relative; overflow: hidden; }
+    .stat-box::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; }
+    .stat-box.margot { background: var(--margot-soft); }
+    .stat-box.margot::before { background: var(--margot); }
+    .stat-box.marshall { background: var(--marshall-soft); }
+    .stat-box.marshall::before { background: var(--marshall); }
+    .stat-box h4 { margin: 4px 0 4px; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .stat-box h4 i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .margot h4 { color: var(--margot); } .margot h4 i { background: var(--margot); }
+    .marshall h4 { color: var(--marshall); } .marshall h4 i { background: var(--marshall); }
+    .stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: var(--text); }
+    .stat-sub { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+
+    /* Field labels */
+    .field-label {
+      display: block; margin: 18px 0 8px; font-size: 12px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted);
+    }
 
     /* Button Toggles */
-    label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 14px; color: #444; }
     .btn-group { display: flex; gap: 8px; }
     .btn-group input { display: none; }
-    .btn-group label { flex: 1; text-align: center; background: #e9ecef; padding: 12px 5px; border-radius: 10px; margin: 0; cursor: pointer; font-size: 14px; transition: all 0.2s; font-weight: 500; }
-    .btn-group input:checked + label { background: #2563eb; color: white; font-weight: bold; }
+    .btn-group label {
+      flex: 1; text-align: center; background: var(--chip); color: var(--text);
+      padding: 13px 4px; border-radius: 14px; cursor: pointer; font-size: 14px; font-weight: 700;
+      transition: transform 0.12s, background 0.2s, color 0.2s, box-shadow 0.2s; user-select: none;
+    }
+    .btn-group label:active { transform: scale(0.96); }
+    .btn-group input:checked + label {
+      background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; font-weight: 800;
+      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35);
+    }
+    .btn-group input#margot:checked + label {
+      background: linear-gradient(135deg, #f472b6, var(--margot)); box-shadow: 0 6px 14px rgba(236, 72, 153, 0.40);
+    }
+    .btn-group input#marshall:checked + label {
+      background: linear-gradient(135deg, #60a5fa, var(--marshall)); box-shadow: 0 6px 14px rgba(59, 130, 246, 0.40);
+    }
 
     /* Wheel Selectors */
     .wheel-container { display: flex; gap: 10px; align-items: center; }
-    select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; background: #fafafa; }
+    .wheel-container span { font-size: 26px; font-weight: 900; color: var(--muted); }
+    select {
+      width: 100%; padding: 13px 10px; border-radius: 14px; border: 2px solid var(--line);
+      font-family: inherit; font-size: 20px; font-weight: 800; text-align: center; text-align-last: center;
+      background: var(--input); color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
+    #amountWheel { font-size: 22px; }
 
     /* Text Box & Submit */
-    textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box; resize: vertical; }
-    button.submit-btn { width: 100%; background: #16a34a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-    button.submit-btn:disabled { background: #9ca3af; }
-    #status { text-align: center; font-weight: bold; margin-top: 10px; }
+    textarea {
+      width: 100%; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--line);
+      font-family: inherit; font-size: 15px; font-weight: 600; resize: vertical; outline: none;
+      background: var(--input); color: var(--text); transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    button.submit-btn {
+      width: 100%; color: #fff; border: none; padding: 16px; border-radius: 16px; font-family: inherit;
+      font-size: 17px; font-weight: 900; margin-top: 22px; cursor: pointer; letter-spacing: 0.2px;
+      background: linear-gradient(135deg, #34d399, #16a34a); box-shadow: 0 10px 22px rgba(22, 163, 74, 0.35);
+      transition: transform 0.12s, box-shadow 0.2s;
+    }
+    button.submit-btn:active { transform: scale(0.98); box-shadow: 0 5px 12px rgba(22, 163, 74, 0.3); }
+    button.submit-btn:disabled { background: #9ca3af; box-shadow: none; }
+    #status { text-align: center; font-weight: 800; margin-top: 12px; min-height: 22px; font-size: 14px; }
 
     /* Tab content toggling */
     .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    
-    .chart-box { position: relative; height: 220px; width: 100%; }
+    .tab-content.active { display: block; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .chart-box { position: relative; height: 230px; width: 100%; }
 
     /* Analytics messages */
-    .chart-note { font-size: 12px; color: #888; text-align: center; margin-top: 8px; }
-    .chart-error { color: #b91c1c; font-size: 13px; text-align: center; }
+    .chart-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; font-weight: 600; }
+    .chart-error { color: #dc2626; font-size: 13px; text-align: center; font-weight: 700; }
   </style>
 </head>
 <body>
+<div class="app">
 
-<!-- TOP TAB NAVIGATION -->
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('log-tab', this)">🍼 Log Entry</button>
-  <button class="tab-btn" onclick="switchTab('analytics-tab', this)">📊 Analytics</button>
-</div>
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-emoji">🍼👶👶</div>
+    <h1>Margot &amp; Marshall</h1>
+    <p id="todayLabel"></p>
+  </header>
 
-<!-- TAB 1: LOG ENTRY -->
-<div id="log-tab" class="tab-content active">
-  
-  <!-- SUMMARY DASHBOARD -->
-  <div class="card">
-    <h2>🍼 Today's Summary</h2>
-    <div class="dashboard">
-      <div class="stat-box">
-        <h4>Margot</h4>
-        <div class="stat-val" id="margot-total">0 ml</div>
-        <div class="stat-sub" id="margot-last">Last: --</div>
+  <!-- TOP TAB NAVIGATION -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('log-tab', this)">🍼 Log Entry</button>
+    <button class="tab-btn" onclick="switchTab('analytics-tab', this)">📊 Analytics</button>
+  </div>
+
+  <!-- TAB 1: LOG ENTRY -->
+  <div id="log-tab" class="tab-content active">
+
+    <!-- SUMMARY DASHBOARD -->
+    <div class="card">
+      <h2>Today's Summary</h2>
+      <div class="dashboard">
+        <div class="stat-box margot">
+          <h4><i></i>Margot</h4>
+          <div class="stat-val" id="margot-total">0 ml</div>
+          <div class="stat-sub" id="margot-last">Last: --</div>
+        </div>
+        <div class="stat-box marshall">
+          <h4><i></i>Marshall</h4>
+          <div class="stat-val" id="marshall-total">0 ml</div>
+          <div class="stat-sub" id="marshall-last">Last: --</div>
+        </div>
       </div>
-      <div class="stat-box">
-        <h4>Marshall</h4>
-        <div class="stat-val" id="marshall-total">0 ml</div>
-        <div class="stat-sub" id="marshall-last">Last: --</div>
+    </div>
+
+    <!-- LOGGING FORM -->
+    <div class="card">
+      <h3>Log Feed &amp; Nappy</h3>
+      <form id="feedForm">
+
+        <!-- 1. Twin Buttons -->
+        <span class="field-label" style="margin-top:0">Select Twin</span>
+        <div class="btn-group">
+          <input type="radio" id="margot" name="twin" value="Margot" checked>
+          <label for="margot">Margot</label>
+          <input type="radio" id="marshall" name="twin" value="Marshall">
+          <label for="marshall">Marshall</label>
+        </div>
+
+        <!-- 2. Time Wheels (Hour & Minute) -->
+        <span class="field-label">Time</span>
+        <div class="wheel-container">
+          <select id="hourWheel" aria-label="Hour"></select>
+          <span>:</span>
+          <select id="minuteWheel" aria-label="Minute"></select>
+        </div>
+
+        <!-- 3. Feed Type Buttons -->
+        <span class="field-label">Feed Type</span>
+        <div class="btn-group">
+          <input type="radio" id="bm" name="feedType" value="Breast Milk" checked>
+          <label for="bm">🤱 Breast Milk</label>
+          <input type="radio" id="formula" name="feedType" value="Formula">
+          <label for="formula">🍼 Formula</label>
+        </div>
+
+        <!-- 4. Amount Wheel (5 to 200 in steps of 5) -->
+        <label class="field-label" for="amountWheel">Amount (ml)</label>
+        <select id="amountWheel"></select>
+
+        <!-- 5. Nappy Change Buttons -->
+        <span class="field-label">Nappy Change?</span>
+        <div class="btn-group">
+          <input type="radio" id="nap-none" name="nappy" value="None" checked>
+          <label for="nap-none">None</label>
+          <input type="radio" id="nap-wet" name="nappy" value="Wet">
+          <label for="nap-wet">💧 Wet</label>
+          <input type="radio" id="nap-dirty" name="nappy" value="Wet & Dirty">
+          <label for="nap-dirty">💩 Wet &amp; Dirty</label>
+        </div>
+
+        <!-- 6. Additional Notes -->
+        <label class="field-label" for="notes">Additional Notes</label>
+        <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Save Log</button>
+      </form>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ANALYTICS -->
+  <div id="analytics-tab" class="tab-content">
+    <div id="analytics-message"></div>
+
+    <div class="card">
+      <h3>📅 Daily Totals (Last 7 Days)</h3>
+      <div class="chart-box">
+        <canvas id="weeklyChart"></canvas>
+      </div>
+      <div class="chart-note" id="weekly-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>🍼 Today's Feeds by Hour (ml)</h3>
+      <div class="chart-box">
+        <canvas id="feedChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>👶 Nappy Changes Today</h3>
+      <div class="chart-box">
+        <canvas id="nappyChart"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- LOGGING FORM -->
-  <div class="card">
-    <h3>Log Feed & Nappy</h3>
-    <form id="feedForm">
-      
-      <!-- 1. Twin Buttons -->
-      <label>Select Twin</label>
-      <div class="btn-group">
-        <input type="radio" id="margot" name="twin" value="Margot" checked>
-        <label for="margot">Margot</label>
-        <input type="radio" id="marshall" name="twin" value="Marshall">
-        <label for="marshall">Marshall</label>
-      </div>
-
-      <!-- 2. Time Wheels (Hour & Minute) -->
-      <label>Time</label>
-      <div class="wheel-container">
-        <select id="hourWheel"></select>
-        <span>:</span>
-        <select id="minuteWheel"></select>
-      </div>
-
-      <!-- 3. Feed Type Buttons -->
-      <label>Feed Type</label>
-      <div class="btn-group">
-        <input type="radio" id="bm" name="feedType" value="Breast Milk" checked>
-        <label for="bm">Breast Milk</label>
-        <input type="radio" id="formula" name="feedType" value="Formula">
-        <label for="formula">Formula</label>
-      </div>
-
-      <!-- 4. Amount Wheel (5 to 200 in steps of 5) -->
-      <label>Amount (ml)</label>
-      <select id="amountWheel"></select>
-
-      <!-- 5. Nappy Change Buttons -->
-      <label>Nappy Change?</label>
-      <div class="btn-group">
-        <input type="radio" id="nap-none" name="nappy" value="None" checked>
-        <label for="nap-none">None</label>
-        <input type="radio" id="nap-wet" name="nappy" value="Wet">
-        <label for="nap-wet">Wet</label>
-        <input type="radio" id="nap-dirty" name="nappy" value="Wet & Dirty">
-        <label for="nap-dirty">Wet & Dirty</label>
-      </div>
-
-      <!-- 6. Additional Notes -->
-      <label for="notes">Additional Notes</label>
-      <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
-
-      <button type="submit" class="submit-btn" id="submitBtn">Save Log</button>
-    </form>
-    <div id="status"></div>
-  </div>
-</div>
-
-<!-- TAB 2: ANALYTICS -->
-<div id="analytics-tab" class="tab-content">
-  <div id="analytics-message"></div>
-
-  <div class="card">
-    <h3>📅 Daily Totals (Last 7 Days)</h3>
-    <div class="chart-box">
-      <canvas id="weeklyChart"></canvas>
-    </div>
-    <div class="chart-note" id="weekly-note"></div>
-  </div>
-
-  <div class="card">
-    <h3>🍼 Today's Feeds by Hour (ml)</h3>
-    <div class="chart-box">
-      <canvas id="feedChart"></canvas>
-    </div>
-  </div>
-  
-  <div class="card">
-    <h3>👶 Nappy Changes Today</h3>
-    <div class="chart-box">
-      <canvas id="nappyChart"></canvas>
-    </div>
-  </div>
 </div>
 
 <script>
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_UDXRU27kcr8d4TeQ4hjUPvADttDD_M_cYGoHYg5c-zL_iPISbpFwb7n2bU860wh6Bw/exec";
 
+  const COLOR_MARGOT = '#ec4899';
+  const COLOR_MARSHALL = '#3b82f6';
+
   let feedChartInstance = null;
   let nappyChartInstance = null;
   let weeklyChartInstance = null;
+
+  // Friendly date under the title
+  document.getElementById('todayLabel').innerText =
+    new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Populate Hour Wheel (00 - 23)
   const hourWheel = document.getElementById('hourWheel');
@@ -200,7 +329,7 @@
   function switchTab(tabId, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
+
     document.getElementById(tabId).classList.add('active');
     btn.classList.add('active');
 
@@ -255,16 +384,16 @@
     const parsed = parseTimeString(timeStr);
     const parts = parsed.split(':');
     if (parts.length < 2) return `Last: ${parsed}`;
-    
+
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
-    
+
     const last = new Date();
     last.setHours(h, m, 0, 0);
-    
+
     const diffMs = new Date() - last;
     if (diffMs < 0) return `Last: ${parsed}`;
-    
+
     const diffMins = Math.floor(diffMs / 60000);
     const hrs = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
@@ -277,7 +406,7 @@
       .then(res => res.json())
       .then(data => {
         if (!data || data.length <= 1) return;
-        
+
         let totals = { Margot: 0, Marshall: 0 };
         let lastFeeds = { Margot: null, Marshall: null };
 
@@ -324,6 +453,39 @@
       : '';
   }
 
+  // Apply theme-aware defaults to Chart.js and return shared colours
+  function chartTheme() {
+    const cs = getComputedStyle(document.documentElement);
+    const muted = cs.getPropertyValue('--muted').trim() || '#6b7280';
+    const line = cs.getPropertyValue('--line').trim() || '#e9e5f0';
+    Chart.defaults.color = muted;
+    Chart.defaults.font.family = 'Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    Chart.defaults.font.weight = '700';
+    return { muted, line };
+  }
+
+  function makeOptions(line, opts = {}) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 16 }
+        },
+        tooltip: { cornerRadius: 10, padding: 10 }
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false }, ticks: opts.xTicks || {} },
+        y: { beginAtZero: true, grid: { color: line }, border: { display: false }, ticks: opts.yTicks || {} }
+      }
+    };
+  }
+
+  function barDataset(label, data, color, radius) {
+    return { label, data, backgroundColor: color, borderRadius: radius, borderSkipped: false, maxBarThickness: 30 };
+  }
+
   // Render Charts for Analytics Tab
   function renderAnalyticsCharts() {
     showAnalyticsMessage('');
@@ -341,6 +503,8 @@
           return;
         }
 
+        const theme = chartTheme();
+
         const last7DaysKeys = [];
         const dayLabels = [];
         const margot7DayTotals = {};
@@ -350,10 +514,10 @@
           const d = new Date();
           d.setDate(d.getDate() - i);
           const fullKey = normalizeDateStr(d).trim();
-          const labelKey = fullKey.slice(0, 5);
-          
+          const weekday = d.toLocaleDateString('en-GB', { weekday: 'short' });
+
           last7DaysKeys.push(fullKey);
-          dayLabels.push(labelKey);
+          dayLabels.push(`${weekday} ${d.getDate()}`);
           margot7DayTotals[fullKey] = 0;
           marshall7DayTotals[fullKey] = 0;
         }
@@ -396,7 +560,7 @@
           if (dateVal === todayStr || dateVal === latestDateInSheet) {
             const timeStr = parseTimeString(timeVal);
             const hour = parseInt(timeStr.split(':')[0], 10);
-            
+
             if (!isNaN(hour) && hour >= 0 && hour < 24) {
               if (twin === 'Margot') margotFeeds[hour] += amount;
               if (twin === 'Marshall') marshallFeeds[hour] += amount;
@@ -413,7 +577,7 @@
         if (matchedRows === 0) {
           const sample = data[1] ? String(data[1][0]) : '(none)';
           note.innerText = `No rows matched the last 7 days. First date in sheet reads: "${sample}", looking for e.g. "${last7DaysKeys[6]}".`;
-          note.style.color = '#b91c1c';
+          note.style.color = '#dc2626';
         } else {
           note.innerText = '';
         }
@@ -432,11 +596,11 @@
           data: {
             labels: dayLabels,
             datasets: [
-              { label: 'Margot (ml)', data: margot7Data, backgroundColor: '#ec4899' },
-              { label: 'Marshall (ml)', data: marshall7Data, backgroundColor: '#3b82f6' }
+              barDataset('Margot (ml)', margot7Data, COLOR_MARGOT, 8),
+              barDataset('Marshall (ml)', marshall7Data, COLOR_MARSHALL, 8)
             ]
           },
-          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+          options: makeOptions(theme.line)
         });
 
         // CHART 2: Today's Hourly Feed Chart
@@ -446,11 +610,11 @@
           data: {
             labels: hours,
             datasets: [
-              { label: 'Margot (ml)', data: margotFeeds, backgroundColor: '#ec4899' },
-              { label: 'Marshall (ml)', data: marshallFeeds, backgroundColor: '#3b82f6' }
+              barDataset('Margot (ml)', margotFeeds, COLOR_MARGOT, 4),
+              barDataset('Marshall (ml)', marshallFeeds, COLOR_MARSHALL, 4)
             ]
           },
-          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+          options: makeOptions(theme.line, { xTicks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } })
         });
 
         // CHART 3: Today's Nappy Chart
@@ -460,11 +624,11 @@
           data: {
             labels: ['Wet', 'Wet & Dirty'],
             datasets: [
-              { label: 'Margot', data: [nappies.Margot.Wet, nappies.Margot["Wet & Dirty"]], backgroundColor: '#ec4899' },
-              { label: 'Marshall', data: [nappies.Marshall.Wet, nappies.Marshall["Wet & Dirty"]], backgroundColor: '#3b82f6' }
+              barDataset('Margot', [nappies.Margot.Wet, nappies.Margot["Wet & Dirty"]], COLOR_MARGOT, 10),
+              barDataset('Marshall', [nappies.Marshall.Wet, nappies.Marshall["Wet & Dirty"]], COLOR_MARSHALL, 10)
             ]
           },
-          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+          options: makeOptions(theme.line, { yTicks: { stepSize: 1, precision: 0 } })
         });
 
         setTimeout(() => {
@@ -487,10 +651,10 @@
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     const status = document.getElementById('status');
-    
+
     btn.disabled = true;
     status.innerText = "Saving...";
-    status.style.color = "#333";
+    status.style.color = "";
 
     const payload = {
       twin: document.querySelector('input[name="twin"]:checked').value,
@@ -508,15 +672,16 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
-      status.innerText = "Logged successfully!";
-      status.style.color = "green";
+      status.innerText = "✅ Logged successfully!";
+      status.style.color = "#16a34a";
       document.getElementById('notes').value = '';
       btn.disabled = false;
       setTimeout(fetchDashboardData, 1200);
+      setTimeout(() => { status.innerText = ""; }, 4000);
     })
     .catch(err => {
-      status.innerText = "Error logging feed.";
-      status.style.color = "red";
+      status.innerText = "⚠️ Error logging feed.";
+      status.style.color = "#dc2626";
       btn.disabled = false;
     });
   });
@@ -524,3 +689,4 @@
 
 </body>
 </html>
+
