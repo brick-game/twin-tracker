@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twin Feed & Nappy Log</title>
+  <!-- Chart.js for Graphic Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 440px; margin: auto; background-color: #f0f2f5; color: #333; }
+    
+    /* Navigation Tabs */
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
+    .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; background: #e0e6ed; font-weight: bold; cursor: pointer; color: #555; font-size: 15px; transition: all 0.2s; }
+    .tab-btn.active { background: #2563eb; color: white; }
+
+    .card { background: white; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
+    h2, h3 { margin-top: 0; text-align: center; color: #222; }
+    
+    /* Stats Header */
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
+    .stat-box { background: #eef2fe; padding: 12px; border-radius: 12px; text-align: center; }
+    .stat-box h4 { margin: 0 0 5px 0; color: #3b5998; font-size: 15px; }
+    .stat-val { font-size: 18px; font-weight: bold; color: #111; }
+    .stat-sub { font-size: 12px; color: #666; margin-top: 4px; }
+
+    /* Button Toggles */
+    label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 14px; color: #444; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-group input { display: none; }
+    .btn-group label { flex: 1; text-align: center; background: #e9ecef; padding: 12px 5px; border-radius: 10px; margin: 0; cursor: pointer; font-size: 14px; transition: all 0.2s; font-weight: 500; }
+    .btn-group input:checked + label { background: #2563eb; color: white; font-weight: bold; }
+
+    /* Wheel Selectors */
+    .wheel-container { display: flex; gap: 10px; align-items: center; }
+    select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; background: #fafafa; }
+
+    /* Text Box & Submit */
+    textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box; resize: vertical; }
+    button.submit-btn { width: 100%; background: #16a34a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    button.submit-btn:disabled { background: #9ca3af; }
+    #status { text-align: center; font-weight: bold; margin-top: 10px; }
+
+    /* Tab content toggling */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- TOP TAB NAVIGATION -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('log-tab', this)">🍼 Log Entry</button>
+  <button class="tab-btn" onclick="switchTab('analytics-tab', this)">📊 Analytics</button>
+</div>
+
+<!-- TAB 1: LOG ENTRY -->
+<div id="log-tab" class="tab-content active">
+  
+  <!-- SUMMARY DASHBOARD -->
+  <div class="card">
+    <h2>🍼 Twin Summary</h2>
+    <div class="dashboard">
+      <div class="stat-box">
+        <h4>Margot</h4>
+        <div class="stat-val" id="margot-total">0 ml</div>
+        <div class="stat-sub" id="margot-last">Last: --</div>
+      </div>
+      <div class="stat-box">
+        <h4>Marshall</h4>
+        <div class="stat-val" id="marshall-total">0 ml</div>
+        <div class="stat-sub" id="marshall-last">Last: --</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGGING FORM -->
+  <div class="card">
+    <h3>Log Feed & Nappy</h3>
+    <form id="feedForm">
+      
+      <!-- 1. Twin Buttons -->
+      <label>Select Twin</label>
+      <div class="btn-group">
+        <input type="radio" id="margot" name="twin" value="Margot" checked>
+        <label for="margot">Margot</label>
+        <input type="radio" id="marshall" name="twin" value="Marshall">
+        <label for="marshall">Marshall</label>
+      </div>
+
+      <!-- 2. Time Wheels (Hour & Minute) -->
+      <label>Time</label>
+      <div class="wheel-container">
+        <select id="hourWheel"></select>
+        <span>:</span>
+        <select id="minuteWheel"></select>
+      </div>
+
+      <!-- 3. Feed Type Buttons -->
+      <label>Feed Type</label>
+      <div class="btn-group">
+        <input type="radio" id="bm" name="feedType" value="Breast Milk" checked>
+        <label for="bm">Breast Milk</label>
+        <input type="radio" id="formula" name="feedType" value="Formula">
+        <label for="formula">Formula</label>
+      </div>
+
+      <!-- 4. Amount Wheel (5 to 200 in steps of 5) -->
+      <label>Amount (ml)</label>
+      <select id="amountWheel"></select>
+
+      <!-- 5. Nappy Change Buttons -->
+      <label>Nappy Change?</label>
+      <div class="btn-group">
+        <input type="radio" id="nap-none" name="nappy" value="None" checked>
+        <label for="nap-none">None</label>
+        <input type="radio" id="nap-wet" name="nappy" value="Wet">
+        <label for="nap-wet">Wet</label>
+        <input type="radio" id="nap-dirty" name="nappy" value="Wet & Dirty">
+        <label for="nap-dirty">Wet & Dirty</label>
+      </div>
+
+      <!-- 6. Additional Notes -->
+      <label for="notes">Additional Notes</label>
+      <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Save Log</button>
+    </form>
+    <div id="status"></div>
+  </div>
+</div>
+
+<!-- TAB 2: ANALYTICS -->
+<div id="analytics-tab" class="tab-content">
+  <div class="card">
+    <h3>🍼 Today's Feeds by Hour (ml)</h3>
+    <canvas id="feedChart"></canvas>
+  </div>
+  
+  <div class="card">
+    <h3>👶 Nappy Changes Today</h3>
+    <canvas id="nappyChart"></canvas>
+  </div>
+</div>
+
+<script>
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_UDXRU27kcr8d4TeQ4hjUPvADttDD_M_cYGoHYg5c-zL_iPISbpFwb7n2bU860wh6Bw/exec";
+
+  let feedChartInstance = null;
+  let nappyChartInstance = null;
+
+  // Populate Hour Wheel (00 - 23)
+  const hourWheel = document.getElementById('hourWheel');
+  for (let h = 0; h < 24; h++) {
+    let val = h.toString().padStart(2, '0');
+    hourWheel.add(new Option(val, val));
+  }
+
+  // Populate Minute Wheel (00 - 59)
+  const minuteWheel = document.getElementById('minuteWheel');
+  for (let m = 0; m < 60; m++) {
+    let val = m.toString().padStart(2, '0');
+    minuteWheel.add(new Option(val, val));
+  }
+
+  // Default time wheel to current local time
+  const now = new Date();
+  hourWheel.value = now.getHours().toString().padStart(2, '0');
+  minuteWheel.value = now.getMinutes().toString().padStart(2, '0');
+
+  // Populate Amount Wheel (5 to 200 step 5)
+  const amountWheel = document.getElementById('amountWheel');
+  for (let a = 5; a <= 200; a += 5) {
+    amountWheel.add(new Option(`${a} ml`, a));
+  }
+  amountWheel.value = "120";
+
+  // Tab Switching Handler
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+
+    if (tabId === 'analytics-tab') {
+      renderAnalyticsCharts();
+    }
+  }
+
+  // Time String Parsing Helper
+  function parseTimeString(timeVal) {
+    if (typeof timeVal === 'string' && timeVal.includes('T')) {
+      const d = new Date(timeVal);
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    }
+    return String(timeVal);
+  }
+
+  function formatLastFeed(timeStr) {
+    if (!timeStr) return "Last: None";
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return `Last: ${timeStr}`;
+    
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    
+    const last = new Date();
+    last.setHours(h, m, 0);
+    
+    const diffMs = new Date() - last;
+    if (diffMs < 0) return `Last: ${timeStr}`;
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const hrs = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `Last: ${hrs}h ${mins}m ago`;
+  }
+
+  // Fetch Summary Totals for Dashboard
+  function fetchDashboardData() {
+    fetch(WEB_APP_URL, { redirect: "follow" })
+      .then(res => res.json())
+      .then(data => {
+        if (!data || data.length <= 1) return;
+        
+        let totals = { Margot: 0, Marshall: 0 };
+        let lastFeeds = { Margot: null, Marshall: null };
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const twin = String(row[1]).trim();
+          const timeVal = row[2];
+          const amount = Number(row[4]) || 0;
+
+          if (totals.hasOwnProperty(twin)) {
+            totals[twin] += amount;
+          }
+
+          if (twin && timeVal) {
+            lastFeeds[twin] = parseTimeString(timeVal);
+          }
+        }
+
+        document.getElementById('margot-total').innerText = `${totals.Margot} ml`;
+        document.getElementById('marshall-total').innerText = `${totals.Marshall} ml`;
+
+        document.getElementById('margot-last').innerText = formatLastFeed(lastFeeds.Margot);
+        document.getElementById('marshall-last').innerText = formatLastFeed(lastFeeds.Marshall);
+      })
+      .catch(err => console.error("Error fetching summary:", err));
+  }
+
+  // Render Charts for Analytics Tab
+  function renderAnalyticsCharts() {
+    fetch(WEB_APP_URL, { redirect: "follow" })
+      .then(res => res.json())
+      .then(data => {
+        if (!data || data.length <= 1) return;
+
+        let hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+        let margotFeeds = new Array(24).fill(0);
+        let marshallFeeds = new Array(24).fill(0);
+
+        let nappies = {
+          Margot: { Wet: 0, "Wet & Dirty": 0 },
+          Marshall: { Wet: 0, "Wet & Dirty": 0 }
+        };
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const twin = String(row[1]).trim();
+          const timeVal = row[2];
+          const amount = Number(row[4]) || 0;
+          const nappy = String(row[5]).trim();
+
+          const timeStr = parseTimeString(timeVal);
+          const hour = parseInt(timeStr.split(':')[0], 10);
+          
+          if (!isNaN(hour) && hour >= 0 && hour < 24) {
+            if (twin === 'Margot') margotFeeds[hour] += amount;
+            if (twin === 'Marshall') marshallFeeds[hour] += amount;
+          }
+
+          if (nappies[twin] && nappies[twin][nappy] !== undefined) {
+            nappies[twin][nappy]++;
+          }
+        }
+
+        if (feedChartInstance) feedChartInstance.destroy();
+        if (nappyChartInstance) nappyChartInstance.destroy();
+
+        // 1. Feeding Chart
+        const ctxFeed = document.getElementById('feedChart').getContext('2d');
+        feedChartInstance = new Chart(ctxFeed, {
+          type: 'bar',
+          data: {
+            labels: hours,
+            datasets: [
+              { label: 'Margot (ml)', data: margotFeeds, backgroundColor: '#ec4899' },
+              { label: 'Marshall (ml)', data: marshallFeeds, backgroundColor: '#3b82f6' }
+            ]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        // 2. Nappy Chart
+        const ctxNappy = document.getElementById('nappyChart').getContext('2d');
+        nappyChartInstance = new Chart(ctxNappy, {
+          type: 'bar',
+          data: {
+            labels: ['Wet', 'Wet & Dirty'],
+            datasets: [
+              { label: 'Margot', data: [nappies.Margot.Wet, nappies.Margot["Wet & Dirty"]], backgroundColor: '#ec4899' },
+              { label: 'Marshall', data: [nappies.Marshall.Wet, nappies.Marshall["Wet & Dirty"]], backgroundColor: '#3b82f6' }
+            ]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+      })
+      .catch(err => console.error("Error rendering charts:", err));
+  }
+
+  // Initial load
+  fetchDashboardData();
+
+  // Form Submission
+  document.getElementById('feedForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    
+    btn.disabled = true;
+    status.innerText = "Saving...";
+    status.style.color = "#333";
+
+    const payload = {
+      twin: document.querySelector('input[name="twin"]:checked').value,
+      time: `${hourWheel.value}:${minuteWheel.value}`,
+      feedType: document.querySelector('input[name="feedType"]:checked').value,
+      amount: amountWheel.value,
+      nappy: document.querySelector('input[name="nappy"]:checked').value,
+      notes: document.getElementById('notes').value
+    };
+
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      status.innerText = "Logged successfully!";
+      status.style.color = "green";
+      document.getElementById('notes').value = '';
+      btn.disabled = false;
+      setTimeout(fetchDashboardData, 1200);
+    })
+    .catch(err => {
+      status.innerText = "Error logging feed.";
+      status.style.color = "red";
+      btn.disabled = false;
+    });
+  });
+</script>
+
+</body>
+</html>
