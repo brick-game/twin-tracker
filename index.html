@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     <link rel="apple-touch-icon" href="icon-180.png">
-   <meta name="apple-mobile-web-app-title" content="Twin Log">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#fdf2f8">
-  <title>Twin Tracker</title>
+  <title>Twin Feed & Nappy Log</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Twin Log">
+  <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -72,9 +73,11 @@
     /* Navigation Tabs */
     .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; padding: 5px; background: var(--chip); border-radius: 18px; }
     .tab-btn {
-      flex: 1; padding: 11px; border: none; border-radius: 14px; background: transparent;
-      font-family: inherit; font-weight: 800; cursor: pointer; color: var(--muted); font-size: 15px; transition: all 0.2s;
+      flex: 1; padding: 11px 6px; border: none; border-radius: 14px; background: transparent;
+      font-family: inherit; font-weight: 800; cursor: pointer; color: var(--muted); font-size: 14px; transition: all 0.2s;
+      white-space: nowrap;
     }
+    .tab-btn.wide { flex: 1.7; }
     .tab-btn.active { background: var(--card-solid); color: var(--accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10); }
 
     .card {
@@ -152,7 +155,51 @@
     }
     button.submit-btn:active { transform: scale(0.98); box-shadow: 0 5px 12px rgba(22, 163, 74, 0.3); }
     button.submit-btn:disabled { background: #9ca3af; box-shadow: none; }
-    #status { text-align: center; font-weight: 800; margin-top: 12px; min-height: 22px; font-size: 14px; }
+    #status, .form-status { text-align: center; font-weight: 800; margin-top: 12px; min-height: 22px; font-size: 14px; }
+
+    /* Twin colours for every Margot / Marshall toggle */
+    .btn-group input[value="Margot"]:checked + label {
+      background: linear-gradient(135deg, #f472b6, var(--margot)); box-shadow: 0 6px 14px rgba(236, 72, 153, 0.40);
+    }
+    .btn-group input[value="Marshall"]:checked + label {
+      background: linear-gradient(135deg, #60a5fa, var(--marshall)); box-shadow: 0 6px 14px rgba(59, 130, 246, 0.40);
+    }
+
+    /* Tracker type switcher */
+    .type-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
+    .type-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px 9px; border: none;
+      border-radius: 16px; background: var(--chip); color: var(--muted); font-family: inherit; font-size: 12px;
+      font-weight: 800; cursor: pointer; transition: all 0.2s;
+    }
+    .type-btn .em { font-size: 21px; line-height: 1.1; }
+    .type-btn.active { background: var(--card-solid); color: var(--accent); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18); }
+    .form-panel { display: none; }
+    .form-panel.active { display: block; animation: fadeUp 0.3s ease; }
+
+    /* Number inputs (pumping, growth) */
+    .num-row { display: flex; gap: 10px; }
+    .num-field { flex: 1; min-width: 0; text-align: center; }
+    input.num {
+      width: 100%; padding: 13px 6px; border-radius: 14px; border: 2px solid var(--line); font-family: inherit;
+      font-size: 20px; font-weight: 800; text-align: center; background: var(--input); color: var(--text);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input.num:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
+    .num-cap { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 5px; }
+    .total-chip { text-align: center; margin-top: 14px; font-weight: 900; color: var(--accent); font-size: 15px; }
+    .pump-strip {
+      margin-top: 12px; padding: 10px; border-radius: 14px; background: var(--chip); text-align: center;
+      font-size: 13px; font-weight: 800; color: var(--muted);
+    }
+
+    /* Metric pills on the growth chart */
+    .pill-group { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+    .pill {
+      border: none; border-radius: 999px; padding: 7px 14px; background: var(--chip); color: var(--muted);
+      font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s;
+    }
+    .pill.active { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; }
 
     /* Tab content toggling */
     .tab-content { display: none; }
@@ -160,6 +207,33 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
     .chart-box { position: relative; height: 230px; width: 100%; }
+
+    /* Things We Need */
+    .need-form { display: flex; gap: 8px; }
+    .need-form input {
+      flex: 1; min-width: 0; padding: 13px 14px; border-radius: 14px; border: 2px solid var(--line);
+      font-family: inherit; font-size: 16px; font-weight: 700; background: var(--input); color: var(--text);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .need-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
+    .need-add {
+      border: none; border-radius: 14px; padding: 0 20px; font-family: inherit; font-size: 16px; font-weight: 900;
+      color: #fff; cursor: pointer; background: linear-gradient(135deg, #a78bfa, #6366f1);
+      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35); transition: transform 0.12s;
+    }
+    .need-add:active { transform: scale(0.96); }
+    .need-list { list-style: none; margin: 16px 0 0; padding: 0; }
+    .need-item {
+      display: flex; align-items: center; gap: 10px; padding: 11px 12px 11px 16px; margin-bottom: 8px;
+      border-radius: 14px; background: var(--chip); font-weight: 700; font-size: 16px; animation: fadeUp 0.25s ease;
+    }
+    .need-item span { flex: 1; overflow-wrap: anywhere; }
+    .need-remove {
+      flex: none; width: 34px; height: 34px; border: none; border-radius: 50%; background: var(--card-solid);
+      color: var(--muted); font-size: 14px; font-weight: 900; cursor: pointer; transition: transform 0.12s, color 0.2s;
+    }
+    .need-remove:active { transform: scale(0.9); color: #dc2626; }
+    .needs-empty { text-align: center; color: var(--muted); font-weight: 700; padding: 18px 0 6px; }
 
     /* Analytics messages */
     .chart-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; font-weight: 600; }
@@ -180,6 +254,7 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('log-tab', this)">🍼 Log Entry</button>
     <button class="tab-btn" onclick="switchTab('analytics-tab', this)">📊 Analytics</button>
+    <button class="tab-btn wide" onclick="switchTab('needs-tab', this)">🛒 Things We Need</button>
   </div>
 
   <!-- TAB 1: LOG ENTRY -->
@@ -193,17 +268,28 @@
           <h4><i></i>Margot</h4>
           <div class="stat-val" id="margot-total">0 ml</div>
           <div class="stat-sub" id="margot-last">Last: --</div>
+          <div class="stat-sub" id="margot-nap">😴 --</div>
         </div>
         <div class="stat-box marshall">
           <h4><i></i>Marshall</h4>
           <div class="stat-val" id="marshall-total">0 ml</div>
           <div class="stat-sub" id="marshall-last">Last: --</div>
+          <div class="stat-sub" id="marshall-nap">😴 --</div>
         </div>
       </div>
+      <div class="pump-strip" id="pump-today">🤱 Pumped today: --</div>
     </div>
 
-    <!-- LOGGING FORM -->
-    <div class="card">
+    <!-- TRACKER TYPE SWITCHER -->
+    <div class="type-bar">
+      <button type="button" class="type-btn active" onclick="switchType('feed', this)"><span class="em">🍼</span>Feed</button>
+      <button type="button" class="type-btn" onclick="switchType('pump', this)"><span class="em">🤱</span>Pump</button>
+      <button type="button" class="type-btn" onclick="switchType('nap', this)"><span class="em">😴</span>Nap</button>
+      <button type="button" class="type-btn" onclick="switchType('growth', this)"><span class="em">📏</span>Growth</button>
+    </div>
+
+    <!-- LOGGING FORM: FEED -->
+    <div class="card form-panel active" id="panel-feed">
       <h3>Log Feed &amp; Nappy</h3>
       <form id="feedForm">
 
@@ -256,6 +342,111 @@
       </form>
       <div id="status"></div>
     </div>
+
+    <!-- LOGGING FORM: PUMPING -->
+    <div class="card form-panel" id="panel-pump">
+      <h3>Log Pumping</h3>
+      <form id="pumpForm">
+        <span class="field-label" style="margin-top:0">Time</span>
+        <div class="wheel-container">
+          <select id="pumpHour" aria-label="Hour"></select>
+          <span>:</span>
+          <select id="pumpMin" aria-label="Minute"></select>
+        </div>
+
+        <span class="field-label">Amount (ml)</span>
+        <div class="num-row">
+          <div class="num-field">
+            <input class="num" type="number" id="pumpLeft" inputmode="numeric" min="0" max="500" placeholder="0" aria-label="Left ml">
+            <div class="num-cap">Left</div>
+          </div>
+          <div class="num-field">
+            <input class="num" type="number" id="pumpRight" inputmode="numeric" min="0" max="500" placeholder="0" aria-label="Right ml">
+            <div class="num-cap">Right</div>
+          </div>
+        </div>
+        <div class="total-chip" id="pumpTotal">Total: 0 ml</div>
+
+        <label class="field-label" for="pumpNotes">Additional Notes</label>
+        <textarea id="pumpNotes" rows="2" placeholder="Optional notes..."></textarea>
+
+        <button type="submit" class="submit-btn" id="pumpBtn">Save Pump</button>
+      </form>
+      <div class="form-status" id="pumpStatus"></div>
+    </div>
+
+    <!-- LOGGING FORM: NAP -->
+    <div class="card form-panel" id="panel-nap">
+      <h3>Log Nap</h3>
+      <form id="napForm">
+        <span class="field-label" style="margin-top:0">Who napped?</span>
+        <div class="btn-group">
+          <input type="radio" id="napMargot" name="napTwin" value="Margot" checked>
+          <label for="napMargot">Margot</label>
+          <input type="radio" id="napMarshall" name="napTwin" value="Marshall">
+          <label for="napMarshall">Marshall</label>
+          <input type="radio" id="napBoth" name="napTwin" value="Both">
+          <label for="napBoth">Both</label>
+        </div>
+
+        <span class="field-label">Started</span>
+        <div class="wheel-container">
+          <select id="napStartHour" aria-label="Start hour"></select>
+          <span>:</span>
+          <select id="napStartMin" aria-label="Start minute"></select>
+        </div>
+
+        <span class="field-label">Woke up</span>
+        <div class="wheel-container">
+          <select id="napEndHour" aria-label="End hour"></select>
+          <span>:</span>
+          <select id="napEndMin" aria-label="End minute"></select>
+        </div>
+        <div class="total-chip" id="napLength">Nap length: --</div>
+
+        <label class="field-label" for="napNotes">Additional Notes</label>
+        <textarea id="napNotes" rows="2" placeholder="Optional notes..."></textarea>
+
+        <button type="submit" class="submit-btn" id="napBtn">Save Nap</button>
+      </form>
+      <div class="form-status" id="napStatus"></div>
+    </div>
+
+    <!-- LOGGING FORM: GROWTH -->
+    <div class="card form-panel" id="panel-growth">
+      <h3>Log Growth</h3>
+      <form id="growthForm">
+        <span class="field-label" style="margin-top:0">Select Twin</span>
+        <div class="btn-group">
+          <input type="radio" id="growthMargot" name="growthTwin" value="Margot" checked>
+          <label for="growthMargot">Margot</label>
+          <input type="radio" id="growthMarshall" name="growthTwin" value="Marshall">
+          <label for="growthMarshall">Marshall</label>
+        </div>
+
+        <span class="field-label">Measurements</span>
+        <div class="num-row">
+          <div class="num-field">
+            <input class="num" type="number" id="growthWeight" inputmode="decimal" step="0.01" min="0" max="40" placeholder="0.00" aria-label="Weight kg">
+            <div class="num-cap">Weight (kg)</div>
+          </div>
+          <div class="num-field">
+            <input class="num" type="number" id="growthLength" inputmode="decimal" step="0.1" min="0" max="150" placeholder="0.0" aria-label="Length cm">
+            <div class="num-cap">Length (cm)</div>
+          </div>
+          <div class="num-field">
+            <input class="num" type="number" id="growthHead" inputmode="decimal" step="0.1" min="0" max="70" placeholder="0.0" aria-label="Head cm">
+            <div class="num-cap">Head (cm)</div>
+          </div>
+        </div>
+
+        <label class="field-label" for="growthNotes">Additional Notes</label>
+        <textarea id="growthNotes" rows="2" placeholder="Optional notes... (e.g. weighed at clinic)"></textarea>
+
+        <button type="submit" class="submit-btn" id="growthBtn">Save Growth</button>
+      </form>
+      <div class="form-status" id="growthStatus"></div>
+    </div>
   </div>
 
   <!-- TAB 2: ANALYTICS -->
@@ -282,6 +473,49 @@
       <div class="chart-box">
         <canvas id="nappyChart"></canvas>
       </div>
+    </div>
+
+    <div class="card">
+      <h3>😴 Nap Time (Last 7 Days)</h3>
+      <div class="chart-box">
+        <canvas id="napChart"></canvas>
+      </div>
+      <div class="chart-note" id="nap-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>🤱 Pumped (Last 7 Days)</h3>
+      <div class="chart-box">
+        <canvas id="pumpChart"></canvas>
+      </div>
+      <div class="chart-note" id="pump-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>📏 Growth</h3>
+      <div class="pill-group">
+        <button type="button" class="pill active" data-metric="weight" onclick="setGrowthMetric('weight', this)">Weight</button>
+        <button type="button" class="pill" data-metric="length" onclick="setGrowthMetric('length', this)">Length</button>
+        <button type="button" class="pill" data-metric="head" onclick="setGrowthMetric('head', this)">Head</button>
+      </div>
+      <div class="chart-box">
+        <canvas id="growthChart"></canvas>
+      </div>
+      <div class="chart-note" id="growth-note"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: THINGS WE NEED -->
+  <div id="needs-tab" class="tab-content">
+    <div class="card">
+      <h3>🛒 Things We Need</h3>
+      <form id="needForm" class="need-form" autocomplete="off">
+        <input type="text" id="needInput" placeholder="Add an item…" maxlength="120" aria-label="New item" enterkeyhint="done">
+        <button type="submit" class="need-add">Add</button>
+      </form>
+      <div class="chart-note" id="needsStatus"></div>
+      <ul class="need-list" id="needsList"></ul>
+      <div class="chart-note" id="needsCount"></div>
     </div>
   </div>
 
@@ -338,6 +572,9 @@
     if (tabId === 'analytics-tab') {
       // Wait a frame so the tab is visible (and has real dimensions) before drawing charts
       requestAnimationFrame(renderAnalyticsCharts);
+    }
+    if (tabId === 'needs-tab') {
+      loadNeeds();
     }
   }
 
@@ -645,8 +882,418 @@
       });
   }
 
+  // ---------- PUMPING / NAPS / GROWTH ----------
+  const pad2 = n => String(n).padStart(2, '0');
+
+  function fillTimeWheels(hId, mId, date) {
+    const h = document.getElementById(hId), m = document.getElementById(mId);
+    for (let i = 0; i < 24; i++) h.add(new Option(pad2(i), pad2(i)));
+    for (let i = 0; i < 60; i++) m.add(new Option(pad2(i), pad2(i)));
+    setTimeWheels(hId, mId, date);
+  }
+  function setTimeWheels(hId, mId, date) {
+    document.getElementById(hId).value = pad2(date.getHours());
+    document.getElementById(mId).value = pad2(date.getMinutes());
+  }
+  function wheelTime(hId, mId) {
+    return `${document.getElementById(hId).value}:${document.getElementById(mId).value}`;
+  }
+  function fmtMins(total) {
+    const h = Math.floor(total / 60), m = total % 60;
+    return h ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  const nowForWheels = new Date();
+  fillTimeWheels('pumpHour', 'pumpMin', nowForWheels);
+  fillTimeWheels('napEndHour', 'napEndMin', nowForWheels);
+  fillTimeWheels('napStartHour', 'napStartMin', new Date(nowForWheels.getTime() - 30 * 60000));
+
+  // Switch between Feed / Pump / Nap / Growth forms
+  function switchType(type, btn) {
+    document.querySelectorAll('.form-panel').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.type-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('panel-' + type).classList.add('active');
+    btn.classList.add('active');
+
+    const n = new Date();
+    if (type === 'pump') setTimeWheels('pumpHour', 'pumpMin', n);
+    if (type === 'nap') {
+      setTimeWheels('napEndHour', 'napEndMin', n);
+      setTimeWheels('napStartHour', 'napStartMin', new Date(n.getTime() - 30 * 60000));
+      updateNapLength();
+    }
+  }
+
+  // Send one or more log entries and report back on the form
+  function submitLog(payloads, statusId, btnId, onDone) {
+    const btn = document.getElementById(btnId), status = document.getElementById(statusId);
+    btn.disabled = true;
+    status.innerText = "Saving...";
+    status.style.color = "";
+    Promise.all(payloads.map(p => fetch(WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p)
+    })))
+    .then(() => {
+      status.innerText = "✅ Logged successfully!";
+      status.style.color = "#16a34a";
+      btn.disabled = false;
+      if (onDone) onDone();
+      setTimeout(() => { status.innerText = ""; }, 4000);
+    })
+    .catch(() => {
+      status.innerText = "⚠️ Error saving. Check your connection.";
+      status.style.color = "#dc2626";
+      btn.disabled = false;
+    });
+  }
+  function formError(statusId, msg) {
+    const s = document.getElementById(statusId);
+    s.innerText = msg;
+    s.style.color = "#dc2626";
+  }
+
+  // --- Pumping ---
+  function updatePumpTotal() {
+    const l = Number(document.getElementById('pumpLeft').value) || 0;
+    const r = Number(document.getElementById('pumpRight').value) || 0;
+    document.getElementById('pumpTotal').innerText = `Total: ${l + r} ml`;
+  }
+  ['pumpLeft', 'pumpRight'].forEach(id => document.getElementById(id).addEventListener('input', updatePumpTotal));
+
+  document.getElementById('pumpForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const left = Number(document.getElementById('pumpLeft').value) || 0;
+    const right = Number(document.getElementById('pumpRight').value) || 0;
+    if (left + right <= 0) return formError('pumpStatus', 'Enter an amount for at least one side.');
+    submitLog([{
+      type: 'pumping',
+      time: wheelTime('pumpHour', 'pumpMin'),
+      left, right,
+      notes: document.getElementById('pumpNotes').value
+    }], 'pumpStatus', 'pumpBtn', () => {
+      document.getElementById('pumpLeft').value = '';
+      document.getElementById('pumpRight').value = '';
+      document.getElementById('pumpNotes').value = '';
+      updatePumpTotal();
+      setTimeout(fetchExtraSummary, 1200);
+    });
+  });
+
+  // --- Naps ---
+  function napMinutes() {
+    const toMins = t => { const p = t.split(':'); return (+p[0]) * 60 + (+p[1]); };
+    let diff = toMins(wheelTime('napEndHour', 'napEndMin')) - toMins(wheelTime('napStartHour', 'napStartMin'));
+    if (diff < 0) diff += 1440; // crosses midnight
+    return diff;
+  }
+  function updateNapLength() {
+    const m = napMinutes();
+    document.getElementById('napLength').innerText = m === 0 ? 'Nap length: 0m (check the times)' : `Nap length: ${fmtMins(m)}`;
+  }
+  ['napStartHour', 'napStartMin', 'napEndHour', 'napEndMin'].forEach(id =>
+    document.getElementById(id).addEventListener('change', updateNapLength));
+  updateNapLength();
+
+  document.getElementById('napForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (napMinutes() === 0) return formError('napStatus', 'Start and end times are the same.');
+    const who = document.querySelector('input[name="napTwin"]:checked').value;
+    const twins = who === 'Both' ? ['Margot', 'Marshall'] : [who];
+    submitLog(twins.map(twin => ({
+      type: 'nap',
+      twin,
+      start: wheelTime('napStartHour', 'napStartMin'),
+      end: wheelTime('napEndHour', 'napEndMin'),
+      notes: document.getElementById('napNotes').value
+    })), 'napStatus', 'napBtn', () => {
+      document.getElementById('napNotes').value = '';
+      setTimeout(fetchExtraSummary, 1200);
+    });
+  });
+
+  // --- Growth ---
+  document.getElementById('growthForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const weight = document.getElementById('growthWeight').value;
+    const length = document.getElementById('growthLength').value;
+    const head = document.getElementById('growthHead').value;
+    if (!weight && !length && !head) return formError('growthStatus', 'Enter at least one measurement.');
+    submitLog([{
+      type: 'growth',
+      twin: document.querySelector('input[name="growthTwin"]:checked').value,
+      weight, length, head,
+      notes: document.getElementById('growthNotes').value
+    }], 'growthStatus', 'growthBtn', () => {
+      ['growthWeight', 'growthLength', 'growthHead', 'growthNotes'].forEach(id => document.getElementById(id).value = '');
+    });
+  });
+
+  // --- Summary card: naps + pumping today ---
+  function fetchTab(type) {
+    return fetch(WEB_APP_URL + '?type=' + type, { redirect: "follow" })
+      .then(res => res.json())
+      .then(data => Array.isArray(data) ? data.slice(1) : []);
+  }
+
+  function fetchExtraSummary() {
+    const todayStr = normalizeDateStr(new Date()).trim();
+
+    fetchTab('nap').then(rows => {
+      const t = { Margot: 0, Marshall: 0 };
+      rows.forEach(r => {
+        const twin = String(r[1]).trim();
+        if (normalizeDateStr(r[0]).trim() === todayStr && t.hasOwnProperty(twin)) t[twin] += Number(r[4]) || 0;
+      });
+      document.getElementById('margot-nap').innerText = `😴 ${t.Margot ? fmtMins(t.Margot) : '--'}`;
+      document.getElementById('marshall-nap').innerText = `😴 ${t.Marshall ? fmtMins(t.Marshall) : '--'}`;
+    }).catch(err => console.error("Error fetching naps:", err));
+
+    fetchTab('pumping').then(rows => {
+      let total = 0;
+      rows.forEach(r => { if (normalizeDateStr(r[0]).trim() === todayStr) total += Number(r[4]) || 0; });
+      document.getElementById('pump-today').innerText = `🤱 Pumped today: ${total ? total + ' ml' : '--'}`;
+    }).catch(err => console.error("Error fetching pumping:", err));
+  }
+
+  // --- Analytics charts: naps, pumping, growth ---
+  let napChartInstance = null, pumpChartInstance = null, growthChartInstance = null;
+  let growthRows = [];
+  let growthMetric = 'weight';
+
+  function parseDMY(s) {
+    const p = s.split('/');
+    return new Date(+p[2], +p[1] - 1, +p[0]).getTime();
+  }
+
+  function renderExtraCharts() {
+    const theme = chartTheme();
+    const keys = [], labels = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      keys.push(normalizeDateStr(d).trim());
+      labels.push(`${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${d.getDate()}`);
+    }
+
+    // Nap time per day, in hours
+    fetchTab('nap').then(rows => {
+      const m = {}, s = {};
+      keys.forEach(k => { m[k] = 0; s[k] = 0; });
+      rows.forEach(r => {
+        const k = normalizeDateStr(r[0]).trim();
+        const mins = Number(r[4]) || 0;
+        if (!(k in m)) return;
+        if (String(r[1]).trim() === 'Margot') m[k] += mins;
+        if (String(r[1]).trim() === 'Marshall') s[k] += mins;
+      });
+      const hrs = v => Math.round(v / 6) / 10;
+      const anyData = keys.some(k => m[k] || s[k]);
+      document.getElementById('nap-note').innerText = anyData ? '' : 'No naps logged in the last 7 days.';
+      if (napChartInstance) napChartInstance.destroy();
+      napChartInstance = new Chart(document.getElementById('napChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [
+          barDataset('Margot (hrs)', keys.map(k => hrs(m[k])), COLOR_MARGOT, 8),
+          barDataset('Marshall (hrs)', keys.map(k => hrs(s[k])), COLOR_MARSHALL, 8)
+        ] },
+        options: makeOptions(theme.line)
+      });
+    }).catch(err => {
+      console.error("Error rendering nap chart:", err);
+      document.getElementById('nap-note').innerText = "Couldn't load nap data.";
+    });
+
+    // Pumped ml per day, left and right stacked
+    fetchTab('pumping').then(rows => {
+      const l = {}, r2 = {};
+      keys.forEach(k => { l[k] = 0; r2[k] = 0; });
+      rows.forEach(r => {
+        const k = normalizeDateStr(r[0]).trim();
+        if (!(k in l)) return;
+        l[k] += Number(r[2]) || 0;
+        r2[k] += Number(r[3]) || 0;
+      });
+      const anyData = keys.some(k => l[k] || r2[k]);
+      document.getElementById('pump-note').innerText = anyData ? '' : 'No pumping logged in the last 7 days.';
+      if (pumpChartInstance) pumpChartInstance.destroy();
+      const opts = makeOptions(theme.line);
+      opts.scales.x.stacked = true;
+      opts.scales.y.stacked = true;
+      pumpChartInstance = new Chart(document.getElementById('pumpChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [
+          barDataset('Left (ml)', keys.map(k => l[k]), '#a78bfa', 6),
+          barDataset('Right (ml)', keys.map(k => r2[k]), '#34d399', 6)
+        ] },
+        options: opts
+      });
+    }).catch(err => {
+      console.error("Error rendering pumping chart:", err);
+      document.getElementById('pump-note').innerText = "Couldn't load pumping data.";
+    });
+
+    // Growth over time
+    fetchTab('growth').then(rows => {
+      growthRows = rows;
+      drawGrowthChart();
+    }).catch(err => {
+      console.error("Error rendering growth chart:", err);
+      document.getElementById('growth-note').innerText = "Couldn't load growth data.";
+    });
+  }
+
+  function setGrowthMetric(metric, btn) {
+    growthMetric = metric;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    drawGrowthChart();
+  }
+
+  function drawGrowthChart() {
+    const theme = chartTheme();
+    const col = { weight: 2, length: 3, head: 4 }[growthMetric];
+    const unit = growthMetric === 'weight' ? 'kg' : 'cm';
+    const valid = r => r[col] !== '' && r[col] !== undefined && !isNaN(Number(r[col]));
+    const rows = growthRows.filter(valid);
+
+    const dates = [...new Set(rows.map(r => normalizeDateStr(r[0]).trim()))]
+      .filter(Boolean)
+      .sort((a, b) => parseDMY(a) - parseDMY(b));
+    const series = twin => dates.map(d => {
+      const hit = rows.filter(r => normalizeDateStr(r[0]).trim() === d && String(r[1]).trim() === twin).pop();
+      return hit ? Number(hit[col]) : null;
+    });
+    const line = (twin, color) => ({
+      label: `${twin} (${unit})`, data: series(twin), borderColor: color, backgroundColor: color,
+      tension: 0.3, spanGaps: true, pointRadius: 5, pointHoverRadius: 7, borderWidth: 3
+    });
+
+    document.getElementById('growth-note').innerText = dates.length ? '' : `No ${growthMetric} measurements logged yet.`;
+    if (growthChartInstance) growthChartInstance.destroy();
+    const opts = makeOptions(theme.line);
+    opts.scales.y.beginAtZero = false;
+    growthChartInstance = new Chart(document.getElementById('growthChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: dates.map(d => d.slice(0, 5)), datasets: [line('Margot', COLOR_MARGOT), line('Marshall', COLOR_MARSHALL)] },
+      options: opts
+    });
+  }
+
+  // ---------- THINGS WE NEED (shared shopping list, stored in the "Things We Need" sheet tab) ----------
+  let needs = [];        // [{ id, item }]
+  let needsPending = 0;  // in-flight changes; while > 0 we don't overwrite the list with a refresh
+
+  function newNeedId() {
+    return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function needsStatus(msg) {
+    document.getElementById('needsStatus').innerText = msg || '';
+  }
+
+  function renderNeeds() {
+    const list = document.getElementById('needsList');
+    list.innerHTML = '';
+    document.getElementById('needsCount').innerText =
+      needs.length ? `${needs.length} item${needs.length === 1 ? '' : 's'} on the list` : '';
+
+    if (!needs.length) {
+      list.innerHTML = '<div class="needs-empty">Nothing on the list 🎉</div>';
+      return;
+    }
+    needs.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'need-item';
+      const label = document.createElement('span');
+      label.textContent = n.item;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'need-remove';
+      btn.textContent = '✕';
+      btn.setAttribute('aria-label', 'Remove ' + n.item);
+      btn.addEventListener('click', () => removeNeed(n.id));
+      li.append(label, btn);
+      list.appendChild(li);
+    });
+  }
+
+  function loadNeeds() {
+    if (needsPending > 0) return;
+    fetch(WEB_APP_URL + '?type=needs', { redirect: "follow" })
+      .then(res => res.json())
+      .then(data => {
+        if (needsPending > 0 || !Array.isArray(data)) return;
+        needs = data.slice(1)
+          .filter(r => r[0] && r[1])
+          .map(r => ({ id: String(r[0]), item: String(r[1]) }));
+        needsStatus('');
+        renderNeeds();
+      })
+      .catch(err => {
+        console.error("Error loading list:", err);
+        needsStatus("Couldn't refresh the list. Showing what's on this phone.");
+      });
+  }
+
+  function sendNeed(payload) {
+    needsPending++;
+    return fetch(WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => { needsPending--; setTimeout(loadNeeds, 800); })
+    .catch(err => {
+      needsPending--;
+      console.error("Error saving list change:", err);
+      needsStatus("Couldn't save that change. Check your connection.");
+      loadNeeds();
+    });
+  }
+
+  function addNeed(text) {
+    const item = text.trim().replace(/\s+/g, ' ');
+    if (!item) return;
+    if (needs.some(n => n.item.toLowerCase() === item.toLowerCase())) {
+      needsStatus(`"${item}" is already on the list.`);
+      return;
+    }
+    needsStatus('');
+    const id = newNeedId();
+    needs.push({ id, item });
+    renderNeeds();
+    sendNeed({ type: 'need_add', id, item });
+  }
+
+  function removeNeed(id) {
+    needs = needs.filter(n => n.id !== id);
+    renderNeeds();
+    sendNeed({ type: 'need_remove', id });
+  }
+
+  document.getElementById('needForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const input = document.getElementById('needInput');
+    addNeed(input.value);
+    input.value = '';
+    input.focus();
+  });
+
+  // Pick up changes made on the other phone whenever the app comes back to the front
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' &&
+        document.getElementById('needs-tab').classList.contains('active')) {
+      loadNeeds();
+    }
+  });
+
   // Initial load
   fetchDashboardData();
+  loadNeeds();
 
   // Form Submission
   document.getElementById('feedForm').addEventListener('submit', function(e) {
@@ -691,4 +1338,5 @@
 
 </body>
 </html>
+
 
