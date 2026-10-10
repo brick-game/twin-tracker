@@ -453,7 +453,7 @@
   const COLOR_MARSHALL = '#3b82f6';
   const TWINS = ['Margot', 'Marshall'];
   const KIND_EMOJI = { 'Wet': '💧', 'Dirty': '💩', 'Wet & Dirty': '💧💩' };
-  const SHEET_COLS = { feed: 7, nappy: 5, pumping: 6, nap: 6, growth: 6 };
+  const SHEET_COLS = { feed: 7, nappy: 5, pumping: 7, nap: 6, growth: 6 };
 
   const $ = id => document.getElementById(id);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -573,8 +573,8 @@
         rec.values = { date, twin: rec.twin, time: rec.time, kind: rec.kind, notes: rec.notes };
       } else if (type === 'pumping') {
         const left = num(raw[2]), right = num(raw[3]);
-        Object.assign(rec, { time: parseTimeString(raw[1]), left, right, total: num(raw[4]) || left + right, notes: raw[5] });
-        rec.values = { date, time: rec.time, left, right, notes: rec.notes };
+        Object.assign(rec, { time: parseTimeString(raw[1]), left, right, total: num(raw[4]) || left + right, notes: raw[5], duration: numOrNull(raw[6]) });
+        rec.values = { date, time: rec.time, left, right, duration: rec.duration, notes: rec.notes };
       } else if (type === 'nap') {
         const start = parseTimeString(raw[2]), end = parseTimeString(raw[3]);
         Object.assign(rec, { twin: raw[1].trim(), start, end, mins: num(raw[4]) || napMins(start, end), notes: raw[5] });
@@ -693,6 +693,7 @@
           { k: 'left', cap: 'Left', ph: '0', step: '1', mode: 'numeric' },
           { k: 'right', cap: 'Right', ph: '0', step: '1', mode: 'numeric' } ] },
         { kind: 'chip', calc: v => `Total: ${(v.left || 0) + (v.right || 0)} ml` },
+        { k: 'duration', kind: 'wheel', label: 'Time spent pumping', values: [5, 10, 15, 20, 25, 30], unit: 'min', def: 15 },
         { k: 'notes', kind: 'notes' }
       ],
       validate: v => (v.left || 0) + (v.right || 0) > 0 ? '' : 'Enter an amount for at least one side.'
@@ -793,6 +794,32 @@
             const a = String(v.amount);
             if (![...s.options].some(o => o.value === a)) { // keep odd values like 72 ml editable
               s.add(new Option(`${a} ml`, a));
+              [...s.options].sort((x, y) => x.value - y.value).forEach(o => s.add(o));
+            }
+            s.value = a;
+          }
+        });
+
+      } else if (f.kind === 'wheel') {
+        // a scroll wheel of fixed choices (e.g. pumping time: 5, 10 ... 30 min)
+        root.append(lab(f.label));
+        const s = mk('select', 'amount');
+        s.setAttribute('aria-label', f.label);
+        f.values.forEach(x => s.add(new Option(`${x} ${f.unit}`, x)));
+        s.value = String(f.def);
+        root.append(s);
+        parts.push({
+          get: () => ({ [f.k]: s.value === '' ? '' : Number(s.value) }),
+          set: v => {
+            const raw = v[f.k];
+            if (raw === null || raw === undefined || raw === '') { // older entries logged before this existed
+              if (![...s.options].some(o => o.value === '')) s.add(new Option('Not logged', ''), 0);
+              s.value = '';
+              return;
+            }
+            const a = String(raw);
+            if (![...s.options].some(o => o.value === a)) {
+              s.add(new Option(`${a} ${f.unit}`, a));
               [...s.options].sort((x, y) => x.value - y.value).forEach(o => s.add(o));
             }
             s.value = a;
@@ -937,8 +964,9 @@
       const nap_n = nappies.filter(r => r.twin === t && r.date === tk).length;
       $(`${id}-extra`).textContent = `😴 ${nap ? fmtMins(nap) : '--'} · 👶 ${nap_n}`;
     });
-    const pumped = sum(DB.pumping.filter(r => r.date === tk).map(r => r.total));
-    $('pump-today').textContent = `🤱 Pumped today: ${pumped ? pumped + ' ml' : '--'}`;
+    const todays = DB.pumping.filter(r => r.date === tk);
+    const pumped = sum(todays.map(r => r.total)), pumpMins = sum(todays.map(r => r.duration || 0));
+    $('pump-today').textContent = `🤱 Pumped today: ${pumped ? pumped + ' ml' : '--'}` + (pumpMins ? ` · ${fmtMins(pumpMins)}` : '');
   }
 
   /* ================= LOG LIST (edit / delete) ================= */
@@ -962,7 +990,7 @@
       return { ico: '🍼', who: r.twin, title: `${r.twin} · ${r.time}`, sub, notes: r.notes };
     }
     if (r.type === 'nappy') return { ico: '👶', who: r.twin, title: `${r.twin} · ${r.time}`, sub: `${KIND_EMOJI[r.kind] || ''} ${r.kind || 'Nappy'}`.trim(), notes: r.notes };
-    if (r.type === 'pumping') return { ico: '🤱', who: null, title: `Pumping · ${r.time}`, sub: `${r.total} ml (L ${r.left} · R ${r.right})`, notes: r.notes };
+    if (r.type === 'pumping') return { ico: '🤱', who: null, title: `Pumping · ${r.time}`, sub: `${r.total} ml (L ${r.left} · R ${r.right})` + (r.duration ? ` · ${r.duration} min` : ''), notes: r.notes };
     if (r.type === 'nap') return { ico: '😴', who: r.twin, title: `${r.twin} · ${r.start}–${r.end}`, sub: `Nap · ${fmtMins(r.mins)}`, notes: r.notes };
     const bits = [];
     if (r.weight !== null) bits.push(`${r.weight} kg`);
@@ -1328,7 +1356,10 @@
     makeChart('pumpChart', { type: 'bar',
       data: { labels: hours, datasets: [barDS('Left (ml)', pl, '#a78bfa', 4), barDS('Right (ml)', pr, '#34d399', 4)] },
       options: baseOptions(theme.line, { xTicks: xt, stacked: true }) });
-    $('pump-note').textContent = sum(pl) + sum(pr) ? `Total ${sum(pl) + sum(pr)} ml` : 'No pumping logged on this day.';
+    const pumpMins = sum(DB.pumping.filter(r => r.date === key).map(r => r.duration || 0));
+    $('pump-note').textContent = sum(pl) + sum(pr)
+      ? `Total ${sum(pl) + sum(pr)} ml` + (pumpMins ? ` · ${fmtMins(pumpMins)} pumping` : '')
+      : 'No pumping logged on this day.';
   }
 
   // Growth over time (all dates)
