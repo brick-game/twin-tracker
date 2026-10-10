@@ -6,13 +6,14 @@
   <meta name="theme-color" content="#fdf2f8">
   <title>Twin Feed & Nappy Log</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Twin Log">
   <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Chart.js for Graphic Visualizations -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
   <style>
     :root {
       --bg1: #fdf2f8;
@@ -70,6 +71,9 @@
     }
     .hero p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 700; }
 
+    .banner { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: #fee2e2; color: #991b1b; font-weight: 700; font-size: 13px; line-height: 1.4; }
+    @media (prefers-color-scheme: dark) { .banner { background: #4c1d1d; color: #fecaca; } }
+
     /* Navigation Tabs */
     .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; padding: 5px; background: var(--chip); border-radius: 18px; }
     .tab-btn {
@@ -88,10 +92,11 @@
     }
     h2, h3 { margin: 0 0 14px; text-align: center; color: var(--text); font-weight: 900; letter-spacing: -0.3px; }
     h2 { font-size: 19px; } h3 { font-size: 17px; }
+    .day-tag { color: var(--accent); }
 
     /* Stats Header */
     .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .stat-box { padding: 14px 10px 12px; border-radius: 18px; text-align: center; position: relative; overflow: hidden; }
+    .stat-box { padding: 14px 8px 12px; border-radius: 18px; text-align: center; position: relative; overflow: hidden; }
     .stat-box::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; }
     .stat-box.margot { background: var(--margot-soft); }
     .stat-box.margot::before { background: var(--margot); }
@@ -103,6 +108,20 @@
     .marshall h4 { color: var(--marshall); } .marshall h4 i { background: var(--marshall); }
     .stat-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: var(--text); }
     .stat-sub { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+    .pump-strip {
+      margin-top: 12px; padding: 10px; border-radius: 14px; background: var(--chip); text-align: center;
+      font-size: 13px; font-weight: 800; color: var(--muted);
+    }
+
+    /* Tracker type switcher */
+    .type-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+    .type-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px 9px; border: none;
+      border-radius: 16px; background: var(--chip); color: var(--muted); font-family: inherit; font-size: 12px;
+      font-weight: 800; cursor: pointer; transition: all 0.2s;
+    }
+    .type-btn .em { font-size: 21px; line-height: 1.1; }
+    .type-btn.active { background: var(--card-solid); color: var(--accent); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18); }
 
     /* Field labels */
     .field-label {
@@ -123,10 +142,10 @@
       background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; font-weight: 800;
       box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35);
     }
-    .btn-group input#margot:checked + label {
+    .btn-group input[value="Margot"]:checked + label {
       background: linear-gradient(135deg, #f472b6, var(--margot)); box-shadow: 0 6px 14px rgba(236, 72, 153, 0.40);
     }
-    .btn-group input#marshall:checked + label {
+    .btn-group input[value="Marshall"]:checked + label {
       background: linear-gradient(135deg, #60a5fa, var(--marshall)); box-shadow: 0 6px 14px rgba(59, 130, 246, 0.40);
     }
 
@@ -138,8 +157,20 @@
       font-family: inherit; font-size: 20px; font-weight: 800; text-align: center; text-align-last: center;
       background: var(--input); color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
-    select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
-    #amountWheel { font-size: 22px; }
+    select.amount { font-size: 22px; }
+    select:focus, textarea:focus, input.num:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
+
+    /* Number inputs (pumping, growth, date) */
+    .num-row { display: flex; gap: 10px; }
+    .num-field { flex: 1; min-width: 0; text-align: center; }
+    input.num {
+      width: 100%; padding: 13px 6px; border-radius: 14px; border: 2px solid var(--line); font-family: inherit;
+      font-size: 20px; font-weight: 800; text-align: center; background: var(--input); color: var(--text);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; min-width: 0;
+    }
+    input.num[type="date"] { font-size: 18px; }
+    .num-cap { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 5px; }
+    .total-chip { text-align: center; margin-top: 14px; font-weight: 900; color: var(--accent); font-size: 15px; }
 
     /* Text Box & Submit */
     textarea {
@@ -155,51 +186,7 @@
     }
     button.submit-btn:active { transform: scale(0.98); box-shadow: 0 5px 12px rgba(22, 163, 74, 0.3); }
     button.submit-btn:disabled { background: #9ca3af; box-shadow: none; }
-    #status, .form-status { text-align: center; font-weight: 800; margin-top: 12px; min-height: 22px; font-size: 14px; }
-
-    /* Twin colours for every Margot / Marshall toggle */
-    .btn-group input[value="Margot"]:checked + label {
-      background: linear-gradient(135deg, #f472b6, var(--margot)); box-shadow: 0 6px 14px rgba(236, 72, 153, 0.40);
-    }
-    .btn-group input[value="Marshall"]:checked + label {
-      background: linear-gradient(135deg, #60a5fa, var(--marshall)); box-shadow: 0 6px 14px rgba(59, 130, 246, 0.40);
-    }
-
-    /* Tracker type switcher */
-    .type-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
-    .type-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px 9px; border: none;
-      border-radius: 16px; background: var(--chip); color: var(--muted); font-family: inherit; font-size: 12px;
-      font-weight: 800; cursor: pointer; transition: all 0.2s;
-    }
-    .type-btn .em { font-size: 21px; line-height: 1.1; }
-    .type-btn.active { background: var(--card-solid); color: var(--accent); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18); }
-    .form-panel { display: none; }
-    .form-panel.active { display: block; animation: fadeUp 0.3s ease; }
-
-    /* Number inputs (pumping, growth) */
-    .num-row { display: flex; gap: 10px; }
-    .num-field { flex: 1; min-width: 0; text-align: center; }
-    input.num {
-      width: 100%; padding: 13px 6px; border-radius: 14px; border: 2px solid var(--line); font-family: inherit;
-      font-size: 20px; font-weight: 800; text-align: center; background: var(--input); color: var(--text);
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    input.num:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15); }
-    .num-cap { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 5px; }
-    .total-chip { text-align: center; margin-top: 14px; font-weight: 900; color: var(--accent); font-size: 15px; }
-    .pump-strip {
-      margin-top: 12px; padding: 10px; border-radius: 14px; background: var(--chip); text-align: center;
-      font-size: 13px; font-weight: 800; color: var(--muted);
-    }
-
-    /* Metric pills on the growth chart */
-    .pill-group { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
-    .pill {
-      border: none; border-radius: 999px; padding: 7px 14px; background: var(--chip); color: var(--muted);
-      font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s;
-    }
-    .pill.active { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; }
+    .form-status { text-align: center; font-weight: 800; margin-top: 12px; min-height: 22px; font-size: 14px; }
 
     /* Tab content toggling */
     .tab-content { display: none; }
@@ -207,6 +194,75 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
     .chart-box { position: relative; height: 230px; width: 100%; }
+    .chart-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; font-weight: 700; min-height: 16px; }
+
+    /* Day navigator + scrollable daily totals */
+    .day-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .nav-btn {
+      flex: none; width: 42px; height: 42px; border: none; border-radius: 14px; background: var(--chip); color: var(--accent);
+      font-family: inherit; font-size: 22px; font-weight: 900; cursor: pointer; line-height: 1; transition: transform 0.12s, opacity 0.2s;
+    }
+    .nav-btn:active { transform: scale(0.92); }
+    .nav-btn:disabled { opacity: 0.35; cursor: default; }
+    .day-nav-label { flex: 1; text-align: center; font-weight: 900; font-size: 17px; color: var(--accent); }
+    .legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 6px; font-size: 12px; font-weight: 800; color: var(--muted); }
+    .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+    .scroll-x { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; border-radius: 14px; scrollbar-width: thin; }
+    .scroll-inner { position: relative; height: 250px; cursor: pointer; }
+    .pill-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .pill-group { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+    .pill {
+      border: none; border-radius: 999px; padding: 8px 14px; background: var(--chip); color: var(--muted);
+      font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s;
+    }
+    .pill.active { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; }
+
+    /* Log entries (edit / delete) */
+    .entry {
+      display: flex; align-items: center; gap: 12px; padding: 11px 10px 11px 12px; margin-bottom: 8px;
+      border-radius: 16px; background: var(--chip);
+    }
+    .entry.busy { opacity: 0.55; }
+    .entry-ico { flex: none; font-size: 22px; width: 30px; text-align: center; }
+    .entry-main { flex: 1; min-width: 0; }
+    .entry-title { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .entry-title i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+    .entry-sub { font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+    .entry-notes { font-size: 12px; font-weight: 600; font-style: italic; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+    .entry-actions { flex: none; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--muted); }
+    .icon-btn {
+      width: 36px; height: 36px; border: none; border-radius: 50%; background: var(--card-solid); font-size: 16px;
+      cursor: pointer; transition: transform 0.12s; line-height: 1;
+    }
+    .icon-btn:active { transform: scale(0.9); }
+    .confirm-btn { border: none; border-radius: 12px; padding: 9px 12px; font-family: inherit; font-weight: 900; font-size: 13px; cursor: pointer; }
+    .confirm-btn.yes { background: #dc2626; color: #fff; }
+    .confirm-btn.no { background: var(--card-solid); color: var(--text); }
+    .more-btn { display: block; margin: 6px auto 0; }
+    .empty { text-align: center; color: var(--muted); font-weight: 700; padding: 18px 0 6px; }
+
+    /* Edit sheet */
+    .modal { position: fixed; inset: 0; z-index: 40; display: none; background: rgba(15, 10, 40, 0.5); align-items: flex-end; justify-content: center; }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 440px; max-height: 92vh; overflow-y: auto; background: var(--card-solid);
+      border-radius: 26px 26px 0 0; padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25); animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions .submit-btn { margin-top: 0; flex: 2; }
+    .ghost-btn {
+      flex: 1; border: none; border-radius: 16px; background: var(--chip); color: var(--text); font-family: inherit;
+      font-size: 16px; font-weight: 800; cursor: pointer;
+    }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+      opacity: 0; background: #1f2937; color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 800; font-size: 14px;
+      z-index: 60; transition: opacity 0.25s, transform 0.25s; pointer-events: none; max-width: 90vw; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* Things We Need */
     .need-form { display: flex; gap: 8px; }
@@ -222,7 +278,7 @@
       box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35); transition: transform 0.12s;
     }
     .need-add:active { transform: scale(0.96); }
-    .need-list { list-style: none; margin: 16px 0 0; padding: 0; }
+    .need-list { margin: 16px 0 0; padding: 0; }
     .need-item {
       display: flex; align-items: center; gap: 10px; padding: 11px 12px 11px 16px; margin-bottom: 8px;
       border-radius: 14px; background: var(--chip); font-weight: 700; font-size: 16px; animation: fadeUp 0.25s ease;
@@ -233,11 +289,6 @@
       color: var(--muted); font-size: 14px; font-weight: 900; cursor: pointer; transition: transform 0.12s, color 0.2s;
     }
     .need-remove:active { transform: scale(0.9); color: #dc2626; }
-    .needs-empty { text-align: center; color: var(--muted); font-weight: 700; padding: 18px 0 6px; }
-
-    /* Analytics messages */
-    .chart-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; font-weight: 600; }
-    .chart-error { color: #dc2626; font-size: 13px; text-align: center; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -250,11 +301,13 @@
     <p id="todayLabel"></p>
   </header>
 
+  <div id="banner" class="banner" style="display:none"></div>
+
   <!-- TOP TAB NAVIGATION -->
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('log-tab', this)">🍼 Log Entry</button>
-    <button class="tab-btn" onclick="switchTab('analytics-tab', this)">📊 Analytics</button>
-    <button class="tab-btn wide" onclick="switchTab('needs-tab', this)">🛒 Things We Need</button>
+    <button class="tab-btn active" data-tab="log-tab">🍼 Log Entry</button>
+    <button class="tab-btn" data-tab="analytics-tab">📊 Analytics</button>
+    <button class="tab-btn wide" data-tab="needs-tab">🛒 Things We Need</button>
   </div>
 
   <!-- TAB 1: LOG ENTRY -->
@@ -267,241 +320,99 @@
         <div class="stat-box margot">
           <h4><i></i>Margot</h4>
           <div class="stat-val" id="margot-total">0 ml</div>
-          <div class="stat-sub" id="margot-last">Last: --</div>
-          <div class="stat-sub" id="margot-nap">😴 --</div>
+          <div class="stat-sub" id="margot-last">Last feed: --</div>
+          <div class="stat-sub" id="margot-extra">😴 -- · 👶 0</div>
         </div>
         <div class="stat-box marshall">
           <h4><i></i>Marshall</h4>
           <div class="stat-val" id="marshall-total">0 ml</div>
-          <div class="stat-sub" id="marshall-last">Last: --</div>
-          <div class="stat-sub" id="marshall-nap">😴 --</div>
+          <div class="stat-sub" id="marshall-last">Last feed: --</div>
+          <div class="stat-sub" id="marshall-extra">😴 -- · 👶 0</div>
         </div>
       </div>
       <div class="pump-strip" id="pump-today">🤱 Pumped today: --</div>
     </div>
 
     <!-- TRACKER TYPE SWITCHER -->
-    <div class="type-bar">
-      <button type="button" class="type-btn active" onclick="switchType('feed', this)"><span class="em">🍼</span>Feed</button>
-      <button type="button" class="type-btn" onclick="switchType('pump', this)"><span class="em">🤱</span>Pump</button>
-      <button type="button" class="type-btn" onclick="switchType('nap', this)"><span class="em">😴</span>Nap</button>
-      <button type="button" class="type-btn" onclick="switchType('growth', this)"><span class="em">📏</span>Growth</button>
+    <div class="type-bar" id="typeBar"></div>
+
+    <!-- LOGGING FORM (rebuilt for each tracker type) -->
+    <div class="card">
+      <h3 id="logTitle">Log Feed</h3>
+      <div id="logFormHost"></div>
+      <button type="button" class="submit-btn" id="logSubmit">Save Log</button>
+      <div class="form-status" id="logStatus"></div>
     </div>
 
-    <!-- LOGGING FORM: FEED -->
-    <div class="card form-panel active" id="panel-feed">
-      <h3>Log Feed &amp; Nappy</h3>
-      <form id="feedForm">
-
-        <!-- 1. Twin Buttons -->
-        <span class="field-label" style="margin-top:0">Select Twin</span>
-        <div class="btn-group">
-          <input type="radio" id="margot" name="twin" value="Margot" checked>
-          <label for="margot">Margot</label>
-          <input type="radio" id="marshall" name="twin" value="Marshall">
-          <label for="marshall">Marshall</label>
-        </div>
-
-        <!-- 2. Time Wheels (Hour & Minute) -->
-        <span class="field-label">Time</span>
-        <div class="wheel-container">
-          <select id="hourWheel" aria-label="Hour"></select>
-          <span>:</span>
-          <select id="minuteWheel" aria-label="Minute"></select>
-        </div>
-
-        <!-- 3. Feed Type Buttons -->
-        <span class="field-label">Feed Type</span>
-        <div class="btn-group">
-          <input type="radio" id="bm" name="feedType" value="Breast Milk" checked>
-          <label for="bm">🤱 Breast Milk</label>
-          <input type="radio" id="formula" name="feedType" value="Formula">
-          <label for="formula">🍼 Formula</label>
-        </div>
-
-        <!-- 4. Amount Wheel (5 to 200 in steps of 5) -->
-        <label class="field-label" for="amountWheel">Amount (ml)</label>
-        <select id="amountWheel"></select>
-
-        <!-- 5. Nappy Change Buttons -->
-        <span class="field-label">Nappy Change?</span>
-        <div class="btn-group">
-          <input type="radio" id="nap-none" name="nappy" value="None" checked>
-          <label for="nap-none">None</label>
-          <input type="radio" id="nap-wet" name="nappy" value="Wet">
-          <label for="nap-wet">💧 Wet</label>
-          <input type="radio" id="nap-dirty" name="nappy" value="Wet & Dirty">
-          <label for="nap-dirty">💩 Wet &amp; Dirty</label>
-        </div>
-
-        <!-- 6. Additional Notes -->
-        <label class="field-label" for="notes">Additional Notes</label>
-        <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
-
-        <button type="submit" class="submit-btn" id="submitBtn">Save Log</button>
-      </form>
-      <div id="status"></div>
-    </div>
-
-    <!-- LOGGING FORM: PUMPING -->
-    <div class="card form-panel" id="panel-pump">
-      <h3>Log Pumping</h3>
-      <form id="pumpForm">
-        <span class="field-label" style="margin-top:0">Time</span>
-        <div class="wheel-container">
-          <select id="pumpHour" aria-label="Hour"></select>
-          <span>:</span>
-          <select id="pumpMin" aria-label="Minute"></select>
-        </div>
-
-        <span class="field-label">Amount (ml)</span>
-        <div class="num-row">
-          <div class="num-field">
-            <input class="num" type="number" id="pumpLeft" inputmode="numeric" min="0" max="500" placeholder="0" aria-label="Left ml">
-            <div class="num-cap">Left</div>
-          </div>
-          <div class="num-field">
-            <input class="num" type="number" id="pumpRight" inputmode="numeric" min="0" max="500" placeholder="0" aria-label="Right ml">
-            <div class="num-cap">Right</div>
-          </div>
-        </div>
-        <div class="total-chip" id="pumpTotal">Total: 0 ml</div>
-
-        <label class="field-label" for="pumpNotes">Additional Notes</label>
-        <textarea id="pumpNotes" rows="2" placeholder="Optional notes..."></textarea>
-
-        <button type="submit" class="submit-btn" id="pumpBtn">Save Pump</button>
-      </form>
-      <div class="form-status" id="pumpStatus"></div>
-    </div>
-
-    <!-- LOGGING FORM: NAP -->
-    <div class="card form-panel" id="panel-nap">
-      <h3>Log Nap</h3>
-      <form id="napForm">
-        <span class="field-label" style="margin-top:0">Who napped?</span>
-        <div class="btn-group">
-          <input type="radio" id="napMargot" name="napTwin" value="Margot" checked>
-          <label for="napMargot">Margot</label>
-          <input type="radio" id="napMarshall" name="napTwin" value="Marshall">
-          <label for="napMarshall">Marshall</label>
-          <input type="radio" id="napBoth" name="napTwin" value="Both">
-          <label for="napBoth">Both</label>
-        </div>
-
-        <span class="field-label">Started</span>
-        <div class="wheel-container">
-          <select id="napStartHour" aria-label="Start hour"></select>
-          <span>:</span>
-          <select id="napStartMin" aria-label="Start minute"></select>
-        </div>
-
-        <span class="field-label">Woke up</span>
-        <div class="wheel-container">
-          <select id="napEndHour" aria-label="End hour"></select>
-          <span>:</span>
-          <select id="napEndMin" aria-label="End minute"></select>
-        </div>
-        <div class="total-chip" id="napLength">Nap length: --</div>
-
-        <label class="field-label" for="napNotes">Additional Notes</label>
-        <textarea id="napNotes" rows="2" placeholder="Optional notes..."></textarea>
-
-        <button type="submit" class="submit-btn" id="napBtn">Save Nap</button>
-      </form>
-      <div class="form-status" id="napStatus"></div>
-    </div>
-
-    <!-- LOGGING FORM: GROWTH -->
-    <div class="card form-panel" id="panel-growth">
-      <h3>Log Growth</h3>
-      <form id="growthForm">
-        <span class="field-label" style="margin-top:0">Select Twin</span>
-        <div class="btn-group">
-          <input type="radio" id="growthMargot" name="growthTwin" value="Margot" checked>
-          <label for="growthMargot">Margot</label>
-          <input type="radio" id="growthMarshall" name="growthTwin" value="Marshall">
-          <label for="growthMarshall">Marshall</label>
-        </div>
-
-        <span class="field-label">Measurements</span>
-        <div class="num-row">
-          <div class="num-field">
-            <input class="num" type="number" id="growthWeight" inputmode="decimal" step="0.01" min="0" max="40" placeholder="0.00" aria-label="Weight kg">
-            <div class="num-cap">Weight (kg)</div>
-          </div>
-          <div class="num-field">
-            <input class="num" type="number" id="growthLength" inputmode="decimal" step="0.1" min="0" max="150" placeholder="0.0" aria-label="Length cm">
-            <div class="num-cap">Length (cm)</div>
-          </div>
-          <div class="num-field">
-            <input class="num" type="number" id="growthHead" inputmode="decimal" step="0.1" min="0" max="70" placeholder="0.0" aria-label="Head cm">
-            <div class="num-cap">Head (cm)</div>
-          </div>
-        </div>
-
-        <label class="field-label" for="growthNotes">Additional Notes</label>
-        <textarea id="growthNotes" rows="2" placeholder="Optional notes... (e.g. weighed at clinic)"></textarea>
-
-        <button type="submit" class="submit-btn" id="growthBtn">Save Growth</button>
-      </form>
-      <div class="form-status" id="growthStatus"></div>
+    <!-- TODAY'S LOGS -->
+    <div class="card">
+      <h3>📋 Today's Logs</h3>
+      <div id="todayLogs"></div>
     </div>
   </div>
 
   <!-- TAB 2: ANALYTICS -->
   <div id="analytics-tab" class="tab-content">
-    <div id="analytics-message"></div>
 
     <div class="card">
-      <h3>📅 Daily Totals (Last 7 Days)</h3>
-      <div class="chart-box">
-        <canvas id="weeklyChart"></canvas>
+      <h3>📅 Daily Totals (ml)</h3>
+      <div class="day-nav">
+        <button type="button" class="nav-btn" id="dayPrev" aria-label="Previous day">‹</button>
+        <div class="day-nav-label" id="dayLabel">Today</div>
+        <button type="button" class="nav-btn" id="dayNext" aria-label="Next day">›</button>
       </div>
-      <div class="chart-note" id="weekly-note"></div>
-    </div>
-
-    <div class="card">
-      <h3>🍼 Today's Feeds by Hour (ml)</h3>
-      <div class="chart-box">
-        <canvas id="feedChart"></canvas>
+      <div class="legend">
+        <span><i style="background:#ec4899"></i>Margot</span>
+        <span><i style="background:#3b82f6"></i>Marshall</span>
       </div>
-    </div>
-
-    <div class="card">
-      <h3>👶 Nappy Changes Today</h3>
-      <div class="chart-box">
-        <canvas id="nappyChart"></canvas>
+      <div class="scroll-x" id="dailyScroll">
+        <div class="scroll-inner" id="dailyInner"><canvas id="dailyChart"></canvas></div>
+      </div>
+      <div class="chart-note" id="daily-note">Swipe sideways to go further back. Tap a day to see it in the charts below.</div>
+      <div class="pill-row">
+        <button type="button" class="pill" id="dayToday">Today</button>
+        <button type="button" class="pill" id="dayJump">📋 Edit logs ↓</button>
       </div>
     </div>
 
     <div class="card">
-      <h3>😴 Nap Time (Last 7 Days)</h3>
-      <div class="chart-box">
-        <canvas id="napChart"></canvas>
-      </div>
+      <h3>🍼 Feeds by Hour <span class="day-tag"></span></h3>
+      <div class="chart-box"><canvas id="feedChart"></canvas></div>
+      <div class="chart-note" id="feed-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>👶 Nappies <span class="day-tag"></span></h3>
+      <div class="chart-box"><canvas id="nappyChart"></canvas></div>
+      <div class="chart-note" id="nappy-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>😴 Naps <span class="day-tag"></span></h3>
+      <div class="chart-box"><canvas id="napChart"></canvas></div>
       <div class="chart-note" id="nap-note"></div>
     </div>
 
     <div class="card">
-      <h3>🤱 Pumped (Last 7 Days)</h3>
-      <div class="chart-box">
-        <canvas id="pumpChart"></canvas>
-      </div>
+      <h3>🤱 Pumping <span class="day-tag"></span></h3>
+      <div class="chart-box"><canvas id="pumpChart"></canvas></div>
       <div class="chart-note" id="pump-note"></div>
     </div>
 
     <div class="card">
       <h3>📏 Growth</h3>
       <div class="pill-group">
-        <button type="button" class="pill active" data-metric="weight" onclick="setGrowthMetric('weight', this)">Weight</button>
-        <button type="button" class="pill" data-metric="length" onclick="setGrowthMetric('length', this)">Length</button>
-        <button type="button" class="pill" data-metric="head" onclick="setGrowthMetric('head', this)">Head</button>
+        <button type="button" class="pill active" data-metric="weight">Weight</button>
+        <button type="button" class="pill" data-metric="length">Length</button>
+        <button type="button" class="pill" data-metric="head">Head</button>
       </div>
-      <div class="chart-box">
-        <canvas id="growthChart"></canvas>
-      </div>
+      <div class="chart-box"><canvas id="growthChart"></canvas></div>
       <div class="chart-note" id="growth-note"></div>
+    </div>
+
+    <div class="card" id="dayLogsCard">
+      <h3>📋 Logs <span class="day-tag"></span></h3>
+      <div id="dayLogs"></div>
     </div>
   </div>
 
@@ -514,85 +425,58 @@
         <button type="submit" class="need-add">Add</button>
       </form>
       <div class="chart-note" id="needsStatus"></div>
-      <ul class="need-list" id="needsList"></ul>
+      <div class="need-list" id="needsList"></div>
       <div class="chart-note" id="needsCount"></div>
     </div>
   </div>
 
 </div>
 
+<!-- EDIT SHEET -->
+<div class="modal" id="editModal">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <h3 id="editTitle">Edit entry</h3>
+    <div id="editBody"></div>
+    <div class="modal-actions">
+      <button type="button" class="ghost-btn" id="editCancel">Cancel</button>
+      <button type="button" class="submit-btn" id="editSave">Save changes</button>
+    </div>
+    <div class="form-status" id="editStatus"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_UDXRU27kcr8d4TeQ4hjUPvADttDD_M_cYGoHYg5c-zL_iPISbpFwb7n2bU860wh6Bw/exec";
 
   const COLOR_MARGOT = '#ec4899';
   const COLOR_MARSHALL = '#3b82f6';
+  const TWINS = ['Margot', 'Marshall'];
+  const KIND_EMOJI = { 'Wet': '💧', 'Dirty': '💩', 'Wet & Dirty': '💧💩' };
+  const SHEET_COLS = { feed: 7, nappy: 5, pumping: 6, nap: 6, growth: 6 };
 
-  let feedChartInstance = null;
-  let nappyChartInstance = null;
-  let weeklyChartInstance = null;
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const pad2 = n => String(n).padStart(2, '0');
+  const twinColor = t => t === 'Margot' ? COLOR_MARGOT : t === 'Marshall' ? COLOR_MARSHALL : '#8b5cf6';
+  const sum = a => a.reduce((s, x) => s + x, 0);
 
-  // Friendly date under the title
-  document.getElementById('todayLabel').innerText =
-    new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  // Populate Hour Wheel (00 - 23)
-  const hourWheel = document.getElementById('hourWheel');
-  for (let h = 0; h < 24; h++) {
-    let val = h.toString().padStart(2, '0');
-    hourWheel.add(new Option(val, val));
+  function mk(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
   }
 
-  // Populate Minute Wheel (00 - 59)
-  const minuteWheel = document.getElementById('minuteWheel');
-  for (let m = 0; m < 60; m++) {
-    let val = m.toString().padStart(2, '0');
-    minuteWheel.add(new Option(val, val));
-  }
+  /* ================= DATES & TIMES ================= */
 
-  // Default time wheel to current local time
-  const now = new Date();
-  hourWheel.value = now.getHours().toString().padStart(2, '0');
-  minuteWheel.value = now.getMinutes().toString().padStart(2, '0');
-
-  // Populate Amount Wheel (5 to 200 step 5)
-  const amountWheel = document.getElementById('amountWheel');
-  for (let a = 5; a <= 200; a += 5) {
-    amountWheel.add(new Option(`${a} ml`, a));
-  }
-  amountWheel.value = "120";
-
-  // Tab Switching Handler
-  function switchTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-    document.getElementById(tabId).classList.add('active');
-    btn.classList.add('active');
-
-    if (tabId === 'analytics-tab') {
-      // Wait a frame so the tab is visible (and has real dimensions) before drawing charts
-      requestAnimationFrame(renderAnalyticsCharts);
-    }
-    if (tabId === 'needs-tab') {
-      loadNeeds();
-    }
-  }
-
-  // Universal UK Date Normalizer (Outputs DD/MM/YYYY)
+  // Universal UK Date Normalizer (outputs DD/MM/YYYY)
   function normalizeDateStr(val) {
     if (!val) return "";
-
-    if (val instanceof Date) {
-      return `${String(val.getDate()).padStart(2,'0')}/${String(val.getMonth()+1).padStart(2,'0')}/${val.getFullYear()}`;
-    }
-
-    let str = String(val).trim();
-
-    // ISO format, e.g. 2026-10-05 or 2026-10-05T00:00:00.000Z (take the date part as written)
+    if (val instanceof Date) return keyFromDate(val);
+    const str = String(val).trim();
     const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
-
-    // d/m/y or dd/mm/yyyy
     const parts = str.split('/');
     if (parts.length === 3) {
       const d = parts[0].trim().padStart(2, '0');
@@ -601,634 +485,911 @@
       if (y.length === 2) y = '20' + y;
       return `${d}/${m}/${y}`;
     }
-
     return str;
   }
+  function keyFromDate(d) { return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`; }
+  function dateFromKey(k) { const p = k.split('/'); return new Date(+p[2], +p[1] - 1, +p[0]); }
+  function todayKey() { return keyFromDate(new Date()); }
+  function addDays(k, n) { const d = dateFromKey(k); d.setDate(d.getDate() + n); return keyFromDate(d); }
+  function keyToISO(k) { const p = k.split('/'); return `${p[2]}-${p[1]}-${p[0]}`; }
+  function isoToKey(s) { const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; }
+  function prettyKey(k) {
+    if (k === todayKey()) return 'Today';
+    if (k === addDays(todayKey(), -1)) return 'Yesterday';
+    return dateFromKey(k).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
 
-  // Extract HH:MM string from time cell
+  // Extract HH:MM string from a time cell ("1:39", "01:39:00", ...)
   function parseTimeString(timeVal) {
     if (!timeVal) return "";
-    let str = String(timeVal).trim();
+    const str = String(timeVal).trim();
     const match = str.match(/(\d{1,2}):(\d{2})/);
-    if (match) {
-      let h = match[1].padStart(2, '0');
-      let m = match[2].padStart(2, '0');
-      return `${h}:${m}`;
-    }
-    return str;
+    return match ? `${match[1].padStart(2, '0')}:${match[2]}` : str;
   }
-
-  function formatLastFeed(timeStr) {
-    if (!timeStr) return "Last: None";
-    const parsed = parseTimeString(timeStr);
-    const parts = parsed.split(':');
-    if (parts.length < 2) return `Last: ${parsed}`;
-
-    const h = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
-
-    const last = new Date();
-    last.setHours(h, m, 0, 0);
-
-    const diffMs = new Date() - last;
-    if (diffMs < 0) return `Last: ${parsed}`;
-
-    const diffMins = Math.floor(diffMs / 60000);
-    const hrs = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return `Last: ${hrs}h ${mins}m ago`;
+  function timeToMins(t) {
+    const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/);
+    return m ? (+m[1]) * 60 + (+m[2]) : -1;
   }
-
-  // Fetch Summary Totals for Dashboard
-  function fetchDashboardData() {
-    fetch(WEB_APP_URL, { redirect: "follow" })
-      .then(res => res.json())
-      .then(data => {
-        if (!data || data.length <= 1) return;
-
-        let totals = { Margot: 0, Marshall: 0 };
-        let lastFeeds = { Margot: null, Marshall: null };
-
-        let latestDateInSheet = "";
-        for (let i = data.length - 1; i >= 1; i--) {
-          let dateStr = normalizeDateStr(data[i][0]).trim(); // Column 0: Date
-          if (dateStr && dateStr.includes('/')) {
-            latestDateInSheet = dateStr;
-            break;
-          }
-        }
-
-        const todayStr = normalizeDateStr(new Date()).trim();
-
-        for (let i = 1; i < data.length; i++) {
-          const row = data[i];
-          const dateVal = normalizeDateStr(row[0]).trim(); // Column 0: Date
-          const twin = String(row[1]).trim();       // Column 1: Twin
-          const timeVal = row[2];                   // Column 2: Time
-          const amount = Number(row[4]) || 0;       // Column 4: Amount
-
-          if (dateVal === todayStr || dateVal === latestDateInSheet) {
-            if (totals.hasOwnProperty(twin)) {
-              totals[twin] += amount;
-            }
-            if (twin && timeVal) {
-              lastFeeds[twin] = parseTimeString(timeVal);
-            }
-          }
-        }
-
-        document.getElementById('margot-total').innerText = `${totals.Margot} ml`;
-        document.getElementById('marshall-total').innerText = `${totals.Marshall} ml`;
-
-        document.getElementById('margot-last').innerText = formatLastFeed(lastFeeds.Margot);
-        document.getElementById('marshall-last').innerText = formatLastFeed(lastFeeds.Marshall);
-      })
-      .catch(err => console.error("Error fetching summary:", err));
-  }
-
-  function showAnalyticsMessage(html) {
-    document.getElementById('analytics-message').innerHTML = html
-      ? `<div class="card chart-error">${html}</div>`
-      : '';
-  }
-
-  // Apply theme-aware defaults to Chart.js and return shared colours
-  function chartTheme() {
-    const cs = getComputedStyle(document.documentElement);
-    const muted = cs.getPropertyValue('--muted').trim() || '#6b7280';
-    const line = cs.getPropertyValue('--line').trim() || '#e9e5f0';
-    Chart.defaults.color = muted;
-    Chart.defaults.font.family = 'Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    Chart.defaults.font.weight = '700';
-    return { muted, line };
-  }
-
-  function makeOptions(line, opts = {}) {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 16 }
-        },
-        tooltip: { cornerRadius: 10, padding: 10 }
-      },
-      scales: {
-        x: { grid: { display: false }, border: { display: false }, ticks: opts.xTicks || {} },
-        y: { beginAtZero: true, grid: { color: line }, border: { display: false }, ticks: opts.yTicks || {} }
-      }
-    };
-  }
-
-  function barDataset(label, data, color, radius) {
-    return { label, data, backgroundColor: color, borderRadius: radius, borderSkipped: false, maxBarThickness: 30 };
-  }
-
-  // Render Charts for Analytics Tab
-  function renderAnalyticsCharts() {
-    showAnalyticsMessage('');
-
-    if (typeof Chart === 'undefined') {
-      showAnalyticsMessage('Chart library failed to load. Check your internet connection and reload.');
-      return;
-    }
-
-    fetch(WEB_APP_URL, { redirect: "follow" })
-      .then(res => res.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length <= 1) {
-          showAnalyticsMessage('No data returned from the sheet yet.');
-          return;
-        }
-
-        const theme = chartTheme();
-
-        const last7DaysKeys = [];
-        const dayLabels = [];
-        const margot7DayTotals = {};
-        const marshall7DayTotals = {};
-
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const fullKey = normalizeDateStr(d).trim();
-          const weekday = d.toLocaleDateString('en-GB', { weekday: 'short' });
-
-          last7DaysKeys.push(fullKey);
-          dayLabels.push(`${weekday} ${d.getDate()}`);
-          margot7DayTotals[fullKey] = 0;
-          marshall7DayTotals[fullKey] = 0;
-        }
-
-        let hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
-        let margotFeeds = new Array(24).fill(0);
-        let marshallFeeds = new Array(24).fill(0);
-
-        let nappies = {
-          Margot: { Wet: 0, "Wet & Dirty": 0 },
-          Marshall: { Wet: 0, "Wet & Dirty": 0 }
-        };
-
-        let latestDateInSheet = "";
-        for (let i = data.length - 1; i >= 1; i--) {
-          let dateStr = normalizeDateStr(data[i][0]).trim(); // Column 0: Date
-          if (dateStr && dateStr.includes('/')) {
-            latestDateInSheet = dateStr;
-            break;
-          }
-        }
-
-        const todayStr = normalizeDateStr(new Date()).trim();
-        let matchedRows = 0;
-
-        for (let i = 1; i < data.length; i++) {
-          const row = data[i];
-          const dateVal = normalizeDateStr(row[0]).trim(); // Column 0: Date
-          const twin = String(row[1]).trim();       // Column 1: Twin
-          const timeVal = row[2];                   // Column 2: Time
-          const amount = Number(row[4]) || 0;       // Column 4: Amount
-          const nappy = String(row[5]).trim();      // Column 5: Nappy
-
-          if (Object.prototype.hasOwnProperty.call(margot7DayTotals, dateVal)) {
-            matchedRows++;
-            if (twin === 'Margot') margot7DayTotals[dateVal] += amount;
-            if (twin === 'Marshall') marshall7DayTotals[dateVal] += amount;
-          }
-
-          if (dateVal === todayStr || dateVal === latestDateInSheet) {
-            const timeStr = parseTimeString(timeVal);
-            const hour = parseInt(timeStr.split(':')[0], 10);
-
-            if (!isNaN(hour) && hour >= 0 && hour < 24) {
-              if (twin === 'Margot') margotFeeds[hour] += amount;
-              if (twin === 'Marshall') marshallFeeds[hour] += amount;
-            }
-
-            if (nappies[twin] && nappies[twin][nappy] !== undefined) {
-              nappies[twin][nappy]++;
-            }
-          }
-        }
-
-        // Diagnostic note under the daily totals chart
-        const note = document.getElementById('weekly-note');
-        if (matchedRows === 0) {
-          const sample = data[1] ? String(data[1][0]) : '(none)';
-          note.innerText = `No rows matched the last 7 days. First date in sheet reads: "${sample}", looking for e.g. "${last7DaysKeys[6]}".`;
-          note.style.color = '#dc2626';
-        } else {
-          note.innerText = '';
-        }
-
-        const margot7Data = last7DaysKeys.map(k => margot7DayTotals[k]);
-        const marshall7Data = last7DaysKeys.map(k => marshall7DayTotals[k]);
-
-        if (feedChartInstance) feedChartInstance.destroy();
-        if (nappyChartInstance) nappyChartInstance.destroy();
-        if (weeklyChartInstance) weeklyChartInstance.destroy();
-
-        // CHART 1: 7-Day History Chart
-        const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
-        weeklyChartInstance = new Chart(ctxWeekly, {
-          type: 'bar',
-          data: {
-            labels: dayLabels,
-            datasets: [
-              barDataset('Margot (ml)', margot7Data, COLOR_MARGOT, 8),
-              barDataset('Marshall (ml)', marshall7Data, COLOR_MARSHALL, 8)
-            ]
-          },
-          options: makeOptions(theme.line)
-        });
-
-        // CHART 2: Today's Hourly Feed Chart
-        const ctxFeed = document.getElementById('feedChart').getContext('2d');
-        feedChartInstance = new Chart(ctxFeed, {
-          type: 'bar',
-          data: {
-            labels: hours,
-            datasets: [
-              barDataset('Margot (ml)', margotFeeds, COLOR_MARGOT, 4),
-              barDataset('Marshall (ml)', marshallFeeds, COLOR_MARSHALL, 4)
-            ]
-          },
-          options: makeOptions(theme.line, { xTicks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } })
-        });
-
-        // CHART 3: Today's Nappy Chart
-        const ctxNappy = document.getElementById('nappyChart').getContext('2d');
-        nappyChartInstance = new Chart(ctxNappy, {
-          type: 'bar',
-          data: {
-            labels: ['Wet', 'Wet & Dirty'],
-            datasets: [
-              barDataset('Margot', [nappies.Margot.Wet, nappies.Margot["Wet & Dirty"]], COLOR_MARGOT, 10),
-              barDataset('Marshall', [nappies.Marshall.Wet, nappies.Marshall["Wet & Dirty"]], COLOR_MARSHALL, 10)
-            ]
-          },
-          options: makeOptions(theme.line, { yTicks: { stepSize: 1, precision: 0 } })
-        });
-
-        setTimeout(() => {
-          weeklyChartInstance.resize();
-          feedChartInstance.resize();
-          nappyChartInstance.resize();
-        }, 50);
-      })
-      .catch(err => {
-        console.error("Error rendering charts:", err);
-        showAnalyticsMessage(`Chart error: ${err.message}`);
-      });
-  }
-
-  // ---------- PUMPING / NAPS / GROWTH ----------
-  const pad2 = n => String(n).padStart(2, '0');
-
-  function fillTimeWheels(hId, mId, date) {
-    const h = document.getElementById(hId), m = document.getElementById(mId);
-    for (let i = 0; i < 24; i++) h.add(new Option(pad2(i), pad2(i)));
-    for (let i = 0; i < 60; i++) m.add(new Option(pad2(i), pad2(i)));
-    setTimeWheels(hId, mId, date);
-  }
-  function setTimeWheels(hId, mId, date) {
-    document.getElementById(hId).value = pad2(date.getHours());
-    document.getElementById(mId).value = pad2(date.getMinutes());
-  }
-  function wheelTime(hId, mId) {
-    return `${document.getElementById(hId).value}:${document.getElementById(mId).value}`;
-  }
+  const hourOf = t => { const m = timeToMins(t); return m < 0 ? -1 : Math.floor(m / 60); };
   function fmtMins(total) {
     const h = Math.floor(total / 60), m = total % 60;
     return h ? `${h}h ${m}m` : `${m}m`;
   }
-
-  const nowForWheels = new Date();
-  fillTimeWheels('pumpHour', 'pumpMin', nowForWheels);
-  fillTimeWheels('napEndHour', 'napEndMin', nowForWheels);
-  fillTimeWheels('napStartHour', 'napStartMin', new Date(nowForWheels.getTime() - 30 * 60000));
-
-  // Switch between Feed / Pump / Nap / Growth forms
-  function switchType(type, btn) {
-    document.querySelectorAll('.form-panel').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.type-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById('panel-' + type).classList.add('active');
-    btn.classList.add('active');
-
-    const n = new Date();
-    if (type === 'pump') setTimeWheels('pumpHour', 'pumpMin', n);
-    if (type === 'nap') {
-      setTimeWheels('napEndHour', 'napEndMin', n);
-      setTimeWheels('napStartHour', 'napStartMin', new Date(n.getTime() - 30 * 60000));
-      updateNapLength();
-    }
+  function napMins(start, end) {
+    const s = timeToMins(start), e = timeToMins(end);
+    if (s < 0 || e < 0) return 0;
+    let d = e - s;
+    if (d < 0) d += 1440; // crosses midnight
+    return d;
+  }
+  function timestampOf(rec) {
+    const t = rec.type === 'nap' ? rec.start : rec.time;
+    const m = timeToMins(t);
+    if (!rec.date || m < 0) return null;
+    const d = dateFromKey(rec.date);
+    d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+    return d.getTime();
+  }
+  function agoText(ts) {
+    const diff = Math.floor((Date.now() - ts) / 60000);
+    if (diff < 0) return 'just now';
+    if (diff < 1) return 'just now';
+    const d = Math.floor(diff / 1440), h = Math.floor((diff % 1440) / 60), m = diff % 60;
+    if (d) return `${d}d ${h}h ago`;
+    return `${h}h ${m}m ago`;
   }
 
-  // Send one or more log entries and report back on the form
-  function submitLog(payloads, statusId, btnId, onDone) {
-    const btn = document.getElementById(btnId), status = document.getElementById(statusId);
-    btn.disabled = true;
-    status.innerText = "Saving...";
-    status.style.color = "";
-    Promise.all(payloads.map(p => fetch(WEB_APP_URL, {
+  /* ================= DATA LAYER ================= */
+
+  let DB = { feed: [], nappy: [], pumping: [], nap: [], growth: [] };
+  let dbLoaded = false, dbHash = '', loadSeq = 0, appliedSeq = 0, analyticsDirty = true, analyticsActive = false;
+
+  const num = v => { const n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : 0; };
+  const numOrNull = v => { if (v === '' || v === null || v === undefined) return null; const n = parseFloat(v); return isFinite(n) ? n : null; };
+
+  function normKind(s) {
+    const l = String(s || '').toLowerCase();
+    if (l.includes('wet') && (l.includes('dirty') || l.includes('poo'))) return 'Wet & Dirty';
+    if (l.includes('wet')) return 'Wet';
+    if (l.includes('dirty') || l.includes('poo')) return 'Dirty';
+    return '';
+  }
+
+  // Turn the raw sheet rows into records. Row n of the response is sheet row n+1.
+  function toRecords(type, rows) {
+    const out = [];
+    for (let i = 1; i < rows.length; i++) {
+      const raw = (rows[i] || []).slice(0, SHEET_COLS[type]).map(v => v === null || v === undefined ? '' : String(v));
+      while (raw.length < SHEET_COLS[type]) raw.push('');
+      const date = normalizeDateStr(raw[0]).trim();
+      if (!date || !date.includes('/')) continue;
+      const rec = { type, row: i + 1, raw, date };
+      if (type === 'feed') {
+        Object.assign(rec, { twin: raw[1].trim(), time: parseTimeString(raw[2]), feedType: raw[3].trim(), amount: num(raw[4]),
+                             legacyKind: normKind(raw[5]), notes: raw[6] });
+        rec.values = { date, twin: rec.twin, time: rec.time, feedType: rec.feedType, amount: rec.amount, notes: rec.notes };
+      } else if (type === 'nappy') {
+        Object.assign(rec, { twin: raw[1].trim(), time: parseTimeString(raw[2]), kind: normKind(raw[3]), notes: raw[4] });
+        rec.values = { date, twin: rec.twin, time: rec.time, kind: rec.kind, notes: rec.notes };
+      } else if (type === 'pumping') {
+        const left = num(raw[2]), right = num(raw[3]);
+        Object.assign(rec, { time: parseTimeString(raw[1]), left, right, total: num(raw[4]) || left + right, notes: raw[5] });
+        rec.values = { date, time: rec.time, left, right, notes: rec.notes };
+      } else if (type === 'nap') {
+        const start = parseTimeString(raw[2]), end = parseTimeString(raw[3]);
+        Object.assign(rec, { twin: raw[1].trim(), start, end, mins: num(raw[4]) || napMins(start, end), notes: raw[5] });
+        rec.values = { date, twin: rec.twin, start, end, notes: rec.notes };
+      } else if (type === 'growth') {
+        Object.assign(rec, { twin: raw[1].trim(), weight: numOrNull(raw[2]), length: numOrNull(raw[3]), head: numOrNull(raw[4]), notes: raw[5] });
+        rec.values = { date, twin: rec.twin, weight: rec.weight, length: rec.length, head: rec.head, notes: rec.notes };
+      }
+      out.push(rec);
+    }
+    return out;
+  }
+
+  // Nappies from the new tab, plus any logged the old way (the "Nappy" column on feed rows)
+  function allNappies() {
+    const legacy = DB.feed.filter(r => r.legacyKind).map(r => ({ legacy: true, type: 'nappy', date: r.date, twin: r.twin, time: r.time, kind: r.legacyKind }));
+    return DB.nappy.concat(legacy);
+  }
+
+  function showBanner(msg) {
+    const b = $('banner');
+    b.textContent = msg || '';
+    b.style.display = msg ? 'block' : 'none';
+  }
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove('show'), 3800);
+  }
+
+  // Fetch every tracker in one request. Resolves true if the data changed since the last load.
+  function loadAll() {
+    const seq = ++loadSeq;
+    return fetch(`${WEB_APP_URL}?type=all&_=${Date.now()}`, { redirect: "follow" })
+      .then(res => res.json())
+      .then(data => {
+        if (!data || Array.isArray(data) || !Array.isArray(data.feed)) throw new Error('SCRIPT_OUTDATED');
+        if (seq < appliedSeq) return false; // an older request finishing late
+        appliedSeq = seq;
+        const hash = JSON.stringify(data);
+        const changed = hash !== dbHash;
+        dbHash = hash;
+        DB = { feed: toRecords('feed', data.feed), nappy: toRecords('nappy', data.nappy || []), pumping: toRecords('pumping', data.pumping || []),
+               nap: toRecords('nap', data.nap || []), growth: toRecords('growth', data.growth || []) };
+        const first = !dbLoaded;
+        dbLoaded = true;
+        showBanner('');
+        updateSummary();
+        rerenderLists();
+        if (first || changed || analyticsDirty) {
+          if (analyticsActive) renderAnalytics(); else analyticsDirty = true;
+        }
+        return changed;
+      })
+      .catch(err => {
+        console.error("Error loading data:", err);
+        showBanner(err.message === 'SCRIPT_OUTDATED'
+          ? 'The Apps Script needs updating: paste the latest script, then Deploy → Manage deployments → pencil → New version → Deploy.'
+          : (dbLoaded ? "Couldn't refresh from the sheet. Showing the last data loaded." : "Couldn't reach the sheet. Check your connection and reload."));
+        throw err;
+      });
+  }
+
+  // After a write, reload until the sheet shows a change (or give up after a few seconds)
+  async function refreshUntilChanged() {
+    try {
+      for (const wait of [0, 1500, 2500]) {
+        if (wait) await sleep(wait);
+        if (await loadAll()) return true;
+      }
+    } catch (e) { /* banner already shown */ }
+    return false;
+  }
+
+  function post(payload) {
+    return fetch(WEB_APP_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(p)
-    })))
-    .then(() => {
-      status.innerText = "✅ Logged successfully!";
-      status.style.color = "#16a34a";
-      btn.disabled = false;
-      if (onDone) onDone();
-      setTimeout(() => { status.innerText = ""; }, 4000);
-    })
-    .catch(() => {
-      status.innerText = "⚠️ Error saving. Check your connection.";
-      status.style.color = "#dc2626";
-      btn.disabled = false;
+      body: JSON.stringify(payload)
     });
   }
-  function formError(statusId, msg) {
-    const s = document.getElementById(statusId);
-    s.innerText = msg;
-    s.style.color = "#dc2626";
-  }
 
-  // --- Pumping ---
-  function updatePumpTotal() {
-    const l = Number(document.getElementById('pumpLeft').value) || 0;
-    const r = Number(document.getElementById('pumpRight').value) || 0;
-    document.getElementById('pumpTotal').innerText = `Total: ${l + r} ml`;
-  }
-  ['pumpLeft', 'pumpRight'].forEach(id => document.getElementById(id).addEventListener('input', updatePumpTotal));
+  /* ================= FORM BUILDER (log forms + edit sheet) ================= */
 
-  document.getElementById('pumpForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const left = Number(document.getElementById('pumpLeft').value) || 0;
-    const right = Number(document.getElementById('pumpRight').value) || 0;
-    if (left + right <= 0) return formError('pumpStatus', 'Enter an amount for at least one side.');
-    submitLog([{
-      type: 'pumping',
-      time: wheelTime('pumpHour', 'pumpMin'),
-      left, right,
-      notes: document.getElementById('pumpNotes').value
-    }], 'pumpStatus', 'pumpBtn', () => {
-      document.getElementById('pumpLeft').value = '';
-      document.getElementById('pumpRight').value = '';
-      document.getElementById('pumpNotes').value = '';
-      updatePumpTotal();
-      setTimeout(fetchExtraSummary, 1200);
-    });
-  });
+  const twinOptions = both => TWINS.map(t => ({ v: t, t })).concat(both ? [{ v: 'Both', t: 'Both', createOnly: true }] : []);
 
-  // --- Naps ---
-  function napMinutes() {
-    const toMins = t => { const p = t.split(':'); return (+p[0]) * 60 + (+p[1]); };
-    let diff = toMins(wheelTime('napEndHour', 'napEndMin')) - toMins(wheelTime('napStartHour', 'napStartMin'));
-    if (diff < 0) diff += 1440; // crosses midnight
-    return diff;
-  }
-  function updateNapLength() {
-    const m = napMinutes();
-    document.getElementById('napLength').innerText = m === 0 ? 'Nap length: 0m (check the times)' : `Nap length: ${fmtMins(m)}`;
-  }
-  ['napStartHour', 'napStartMin', 'napEndHour', 'napEndMin'].forEach(id =>
-    document.getElementById(id).addEventListener('change', updateNapLength));
-  updateNapLength();
-
-  document.getElementById('napForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (napMinutes() === 0) return formError('napStatus', 'Start and end times are the same.');
-    const who = document.querySelector('input[name="napTwin"]:checked').value;
-    const twins = who === 'Both' ? ['Margot', 'Marshall'] : [who];
-    submitLog(twins.map(twin => ({
-      type: 'nap',
-      twin,
-      start: wheelTime('napStartHour', 'napStartMin'),
-      end: wheelTime('napEndHour', 'napEndMin'),
-      notes: document.getElementById('napNotes').value
-    })), 'napStatus', 'napBtn', () => {
-      document.getElementById('napNotes').value = '';
-      setTimeout(fetchExtraSummary, 1200);
-    });
-  });
-
-  // --- Growth ---
-  document.getElementById('growthForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const weight = document.getElementById('growthWeight').value;
-    const length = document.getElementById('growthLength').value;
-    const head = document.getElementById('growthHead').value;
-    if (!weight && !length && !head) return formError('growthStatus', 'Enter at least one measurement.');
-    submitLog([{
-      type: 'growth',
-      twin: document.querySelector('input[name="growthTwin"]:checked').value,
-      weight, length, head,
-      notes: document.getElementById('growthNotes').value
-    }], 'growthStatus', 'growthBtn', () => {
-      ['growthWeight', 'growthLength', 'growthHead', 'growthNotes'].forEach(id => document.getElementById(id).value = '');
-    });
-  });
-
-  // --- Summary card: naps + pumping today ---
-  function fetchTab(type) {
-    return fetch(WEB_APP_URL + '?type=' + type, { redirect: "follow" })
-      .then(res => res.json())
-      .then(data => Array.isArray(data) ? data.slice(1) : []);
-  }
-
-  function fetchExtraSummary() {
-    const todayStr = normalizeDateStr(new Date()).trim();
-
-    fetchTab('nap').then(rows => {
-      const t = { Margot: 0, Marshall: 0 };
-      rows.forEach(r => {
-        const twin = String(r[1]).trim();
-        if (normalizeDateStr(r[0]).trim() === todayStr && t.hasOwnProperty(twin)) t[twin] += Number(r[4]) || 0;
-      });
-      document.getElementById('margot-nap').innerText = `😴 ${t.Margot ? fmtMins(t.Margot) : '--'}`;
-      document.getElementById('marshall-nap').innerText = `😴 ${t.Marshall ? fmtMins(t.Marshall) : '--'}`;
-    }).catch(err => console.error("Error fetching naps:", err));
-
-    fetchTab('pumping').then(rows => {
-      let total = 0;
-      rows.forEach(r => { if (normalizeDateStr(r[0]).trim() === todayStr) total += Number(r[4]) || 0; });
-      document.getElementById('pump-today').innerText = `🤱 Pumped today: ${total ? total + ' ml' : '--'}`;
-    }).catch(err => console.error("Error fetching pumping:", err));
-  }
-
-  // --- Analytics charts: naps, pumping, growth ---
-  let napChartInstance = null, pumpChartInstance = null, growthChartInstance = null;
-  let growthRows = [];
-  let growthMetric = 'weight';
-
-  function parseDMY(s) {
-    const p = s.split('/');
-    return new Date(+p[2], +p[1] - 1, +p[0]).getTime();
-  }
-
-  function renderExtraCharts() {
-    const theme = chartTheme();
-    const keys = [], labels = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      keys.push(normalizeDateStr(d).trim());
-      labels.push(`${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${d.getDate()}`);
+  const FORM_DEFS = {
+    feed: {
+      label: 'Feed', emoji: '🍼', noun: 'feed', title: 'Log Feed',
+      fields: [
+        { k: 'twin', kind: 'seg', label: 'Select Twin', options: twinOptions(false) },
+        { k: 'time', kind: 'time', label: 'Time' },
+        { k: 'feedType', kind: 'seg', label: 'Feed Type', options: [{ v: 'Breast Milk', t: '🤱 Breast Milk' }, { v: 'Formula', t: '🍼 Formula' }] },
+        { k: 'amount', kind: 'amount', label: 'Amount (ml)' },
+        { k: 'notes', kind: 'notes' }
+      ],
+      validate: v => v.amount > 0 ? '' : 'Choose an amount.'
+    },
+    nappy: {
+      label: 'Nappy', emoji: '👶', noun: 'nappy change', title: 'Log Nappy',
+      fields: [
+        { k: 'twin', kind: 'seg', label: 'Select Twin', options: twinOptions(false) },
+        { k: 'time', kind: 'time', label: 'Time' },
+        { k: 'kind', kind: 'seg', label: 'What was in it?', options: [{ v: 'Wet', t: '💧 Wet' }, { v: 'Dirty', t: '💩 Dirty' }, { v: 'Wet & Dirty', t: '💧💩 Wet & Dirty' }] },
+        { k: 'notes', kind: 'notes' }
+      ]
+    },
+    pumping: {
+      label: 'Pump', emoji: '🤱', noun: 'pumping session', title: 'Log Pumping',
+      fields: [
+        { k: 'time', kind: 'time', label: 'Time' },
+        { kind: 'nums', label: 'Amount (ml)', items: [
+          { k: 'left', cap: 'Left', ph: '0', step: '1', mode: 'numeric' },
+          { k: 'right', cap: 'Right', ph: '0', step: '1', mode: 'numeric' } ] },
+        { kind: 'chip', calc: v => `Total: ${(v.left || 0) + (v.right || 0)} ml` },
+        { k: 'notes', kind: 'notes' }
+      ],
+      validate: v => (v.left || 0) + (v.right || 0) > 0 ? '' : 'Enter an amount for at least one side.'
+    },
+    nap: {
+      label: 'Nap', emoji: '😴', noun: 'nap', title: 'Log Nap',
+      fields: [
+        { k: 'twin', kind: 'seg', label: 'Who napped?', options: twinOptions(true) },
+        { k: 'start', kind: 'time', label: 'Started', back: 30 },
+        { k: 'end', kind: 'time', label: 'Woke up' },
+        { kind: 'chip', calc: v => { const m = napMins(v.start, v.end); return m ? `Nap length: ${fmtMins(m)}` : 'Nap length: 0m (check the times)'; } },
+        { k: 'notes', kind: 'notes' }
+      ],
+      validate: v => napMins(v.start, v.end) > 0 ? '' : 'Start and end times are the same.'
+    },
+    growth: {
+      label: 'Growth', emoji: '📏', noun: 'measurement', title: 'Log Growth',
+      fields: [
+        { k: 'twin', kind: 'seg', label: 'Select Twin', options: twinOptions(false) },
+        { kind: 'nums', label: 'Measurements', items: [
+          { k: 'weight', cap: 'Weight (kg)', ph: '0.00', step: '0.01', mode: 'decimal' },
+          { k: 'length', cap: 'Length (cm)', ph: '0.0', step: '0.1', mode: 'decimal' },
+          { k: 'head', cap: 'Head (cm)', ph: '0.0', step: '0.1', mode: 'decimal' } ] },
+        { k: 'notes', kind: 'notes', ph: 'Optional notes... (e.g. weighed at clinic)' }
+      ],
+      validate: v => (v.weight !== '' || v.length !== '' || v.head !== '') ? '' : 'Enter at least one measurement.'
     }
+  };
 
-    // Nap time per day, in hours
-    fetchTab('nap').then(rows => {
-      const m = {}, s = {};
-      keys.forEach(k => { m[k] = 0; s[k] = 0; });
-      rows.forEach(r => {
-        const k = normalizeDateStr(r[0]).trim();
-        const mins = Number(r[4]) || 0;
-        if (!(k in m)) return;
-        if (String(r[1]).trim() === 'Margot') m[k] += mins;
-        if (String(r[1]).trim() === 'Marshall') s[k] += mins;
-      });
-      const hrs = v => Math.round(v / 6) / 10;
-      const anyData = keys.some(k => m[k] || s[k]);
-      document.getElementById('nap-note').innerText = anyData ? '' : 'No naps logged in the last 7 days.';
-      if (napChartInstance) napChartInstance.destroy();
-      napChartInstance = new Chart(document.getElementById('napChart').getContext('2d'), {
-        type: 'bar',
-        data: { labels, datasets: [
-          barDataset('Margot (hrs)', keys.map(k => hrs(m[k])), COLOR_MARGOT, 8),
-          barDataset('Marshall (hrs)', keys.map(k => hrs(s[k])), COLOR_MARSHALL, 8)
-        ] },
-        options: makeOptions(theme.line)
-      });
-    }).catch(err => {
-      console.error("Error rendering nap chart:", err);
-      document.getElementById('nap-note').innerText = "Couldn't load nap data.";
+  let formUid = 0;
+
+  // mode: 'create' (log tab) or 'edit' (edit sheet, adds a Date field)
+  function buildForm(type, mode) {
+    const def = FORM_DEFS[type];
+    const uid = 'f' + (++formUid);
+    const root = mk('div');
+    const parts = [], chips = [];
+    let firstLabel = true;
+    const lab = text => {
+      const s = mk('span', 'field-label', text);
+      if (firstLabel) { s.style.marginTop = '0'; firstLabel = false; }
+      return s;
+    };
+    const fields = def.fields.slice();
+    if (mode === 'edit') fields.unshift({ k: 'date', kind: 'date', label: 'Date' });
+    const api = { root, type, mode };
+
+    fields.forEach(f => {
+      if (f.kind === 'seg') {
+        root.append(lab(f.label));
+        const g = mk('div', 'btn-group');
+        const name = `${uid}-${f.k}`;
+        f.options.filter(o => !(mode === 'edit' && o.createOnly)).forEach((o, i) => {
+          const inp = mk('input');
+          inp.type = 'radio'; inp.name = name; inp.id = `${name}-${i}`; inp.value = o.v;
+          if (i === 0) inp.checked = true;
+          const l = mk('label', '', o.t);
+          l.htmlFor = inp.id;
+          g.append(inp, l);
+        });
+        root.append(g);
+        parts.push({
+          get: () => ({ [f.k]: (g.querySelector('input:checked') || {}).value }),
+          set: v => { const el = [...g.querySelectorAll('input')].find(i => i.value === v[f.k]); if (el) el.checked = true; }
+        });
+
+      } else if (f.kind === 'time') {
+        root.append(lab(f.label));
+        const w = mk('div', 'wheel-container');
+        const h = mk('select'), m = mk('select');
+        h.setAttribute('aria-label', f.label + ' hour'); m.setAttribute('aria-label', f.label + ' minute');
+        for (let i = 0; i < 24; i++) h.add(new Option(pad2(i), pad2(i)));
+        for (let i = 0; i < 60; i++) m.add(new Option(pad2(i), pad2(i)));
+        w.append(h, mk('span', '', ':'), m);
+        root.append(w);
+        let touched = false;
+        const setNow = () => { const d = new Date(Date.now() - (f.back || 0) * 60000); h.value = pad2(d.getHours()); m.value = pad2(d.getMinutes()); };
+        setNow();
+        h.addEventListener('change', () => { touched = true; });
+        m.addEventListener('change', () => { touched = true; });
+        parts.push({
+          get: () => ({ [f.k]: `${h.value}:${m.value}` }),
+          set: v => { const t = parseTimeString(v[f.k]).split(':'); if (t.length === 2) { h.value = pad2(+t[0]); m.value = pad2(+t[1]); touched = true; } },
+          freshen: () => { if (!touched) setNow(); },
+          afterSave: () => { touched = false; setNow(); }
+        });
+
+      } else if (f.kind === 'amount') {
+        root.append(lab(f.label));
+        const s = mk('select', 'amount');
+        s.setAttribute('aria-label', 'Amount in ml');
+        for (let a = 5; a <= 200; a += 5) s.add(new Option(`${a} ml`, a));
+        s.value = '120';
+        root.append(s);
+        parts.push({
+          get: () => ({ amount: Number(s.value) }),
+          set: v => {
+            const a = String(v.amount);
+            if (![...s.options].some(o => o.value === a)) { // keep odd values like 72 ml editable
+              s.add(new Option(`${a} ml`, a));
+              [...s.options].sort((x, y) => x.value - y.value).forEach(o => s.add(o));
+            }
+            s.value = a;
+          }
+        });
+
+      } else if (f.kind === 'nums') {
+        root.append(lab(f.label));
+        const row = mk('div', 'num-row');
+        const inputs = {};
+        f.items.forEach(it => {
+          const box = mk('div', 'num-field');
+          const inp = mk('input', 'num');
+          inp.type = 'number'; inp.inputMode = it.mode; inp.step = it.step; inp.min = '0'; inp.placeholder = it.ph;
+          inp.setAttribute('aria-label', it.cap);
+          inputs[it.k] = inp;
+          box.append(inp, mk('div', 'num-cap', it.cap));
+          row.append(box);
+        });
+        root.append(row);
+        parts.push({
+          get: () => { const o = {}; f.items.forEach(it => { const val = inputs[it.k].value; o[it.k] = val === '' ? '' : Number(val); }); return o; },
+          set: v => f.items.forEach(it => { inputs[it.k].value = (v[it.k] === null || v[it.k] === undefined) ? '' : v[it.k]; }),
+          afterSave: () => f.items.forEach(it => { inputs[it.k].value = ''; })
+        });
+
+      } else if (f.kind === 'chip') {
+        const c = mk('div', 'total-chip');
+        root.append(c);
+        chips.push(() => { c.textContent = f.calc(api.get()); });
+
+      } else if (f.kind === 'date') {
+        root.append(lab(f.label));
+        const d = mk('input', 'num');
+        d.type = 'date';
+        d.setAttribute('aria-label', 'Date');
+        root.append(d);
+        parts.push({ get: () => ({ date: isoToKey(d.value) }), set: v => { d.value = keyToISO(v.date); } });
+
+      } else if (f.kind === 'notes') {
+        const l = lab('Additional Notes');
+        const t = mk('textarea');
+        t.rows = 2; t.placeholder = f.ph || 'Optional notes...';
+        t.setAttribute('aria-label', 'Additional notes');
+        root.append(l, t);
+        parts.push({ get: () => ({ notes: t.value }), set: v => { t.value = v.notes || ''; }, afterSave: () => { t.value = ''; } });
+      }
     });
 
-    // Pumped ml per day, left and right stacked
-    fetchTab('pumping').then(rows => {
-      const l = {}, r2 = {};
-      keys.forEach(k => { l[k] = 0; r2[k] = 0; });
-      rows.forEach(r => {
-        const k = normalizeDateStr(r[0]).trim();
-        if (!(k in l)) return;
-        l[k] += Number(r[2]) || 0;
-        r2[k] += Number(r[3]) || 0;
-      });
-      const anyData = keys.some(k => l[k] || r2[k]);
-      document.getElementById('pump-note').innerText = anyData ? '' : 'No pumping logged in the last 7 days.';
-      if (pumpChartInstance) pumpChartInstance.destroy();
-      const opts = makeOptions(theme.line);
-      opts.scales.x.stacked = true;
-      opts.scales.y.stacked = true;
-      pumpChartInstance = new Chart(document.getElementById('pumpChart').getContext('2d'), {
-        type: 'bar',
-        data: { labels, datasets: [
-          barDataset('Left (ml)', keys.map(k => l[k]), '#a78bfa', 6),
-          barDataset('Right (ml)', keys.map(k => r2[k]), '#34d399', 6)
-        ] },
-        options: opts
-      });
-    }).catch(err => {
-      console.error("Error rendering pumping chart:", err);
-      document.getElementById('pump-note').innerText = "Couldn't load pumping data.";
-    });
+    api.get = () => Object.assign({}, ...parts.map(p => p.get()));
+    api.set = v => parts.forEach(p => p.set && p.set(v));
+    api.freshen = () => parts.forEach(p => p.freshen && p.freshen());
+    api.afterSave = () => { parts.forEach(p => p.afterSave && p.afterSave()); refresh(); };
+    api.validate = () => {
+      const v = api.get();
+      if (mode === 'edit' && !v.date) return 'Pick a valid date.';
+      return def.validate ? def.validate(v) : '';
+    };
+    const refresh = () => chips.forEach(fn => fn());
+    root.addEventListener('input', refresh);
+    root.addEventListener('change', refresh);
+    refresh();
+    return api;
+  }
 
-    // Growth over time
-    fetchTab('growth').then(rows => {
-      growthRows = rows;
-      drawGrowthChart();
-    }).catch(err => {
-      console.error("Error rendering growth chart:", err);
-      document.getElementById('growth-note').innerText = "Couldn't load growth data.";
+  /* ================= LOG TAB ================= */
+
+  let currentType = 'feed', logForm = null, logBusy = false;
+
+  function buildTypeBar() {
+    const bar = $('typeBar');
+    Object.keys(FORM_DEFS).forEach(k => {
+      const b = mk('button', 'type-btn' + (k === currentType ? ' active' : ''));
+      b.type = 'button';
+      b.dataset.type = k;
+      b.append(mk('span', 'em', FORM_DEFS[k].emoji), document.createTextNode(FORM_DEFS[k].label));
+      b.addEventListener('click', () => showLogForm(k));
+      bar.append(b);
     });
   }
 
-  function setGrowthMetric(metric, btn) {
-    growthMetric = metric;
-    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    drawGrowthChart();
+  function showLogForm(type) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    logForm = buildForm(type, 'create');
+    $('logTitle').textContent = FORM_DEFS[type].title;
+    $('logFormHost').replaceChildren(logForm.root);
+    $('logStatus').textContent = '';
   }
 
-  function drawGrowthChart() {
-    const theme = chartTheme();
-    const col = { weight: 2, length: 3, head: 4 }[growthMetric];
-    const unit = growthMetric === 'weight' ? 'kg' : 'cm';
-    const valid = r => r[col] !== '' && r[col] !== undefined && !isNaN(Number(r[col]));
-    const rows = growthRows.filter(valid);
+  function setStatus(id, msg, kind) {
+    const s = $(id);
+    s.textContent = msg;
+    s.style.color = kind === 'error' ? '#dc2626' : kind === 'ok' ? '#16a34a' : '';
+  }
 
-    const dates = [...new Set(rows.map(r => normalizeDateStr(r[0]).trim()))]
-      .filter(Boolean)
-      .sort((a, b) => parseDMY(a) - parseDMY(b));
-    const series = twin => dates.map(d => {
-      const hit = rows.filter(r => normalizeDateStr(r[0]).trim() === d && String(r[1]).trim() === twin).pop();
-      return hit ? Number(hit[col]) : null;
+  async function submitLog() {
+    if (logBusy) return;
+    const err = logForm.validate();
+    if (err) return setStatus('logStatus', err, 'error');
+    const v = logForm.get();
+    const type = currentType;
+    const items = (type === 'nap' && v.twin === 'Both') ? TWINS.map(t => Object.assign({}, v, { twin: t })) : [v];
+
+    logBusy = true;
+    $('logSubmit').disabled = true;
+    setStatus('logStatus', 'Saving...', '');
+    try {
+      for (const it of items) await post(Object.assign({ type }, it));
+    } catch (e) {
+      logBusy = false;
+      $('logSubmit').disabled = false;
+      return setStatus('logStatus', "⚠️ Couldn't save. Check your connection and try again.", 'error');
+    }
+    const confirmed = await refreshUntilChanged();
+    if (type === currentType) logForm.afterSave();
+    logBusy = false;
+    $('logSubmit').disabled = false;
+    if (confirmed) {
+      setStatus('logStatus', '✅ Saved!', 'ok');
+      setTimeout(() => { if ($('logStatus').textContent === '✅ Saved!') setStatus('logStatus', '', ''); }, 4000);
+    } else {
+      setStatus('logStatus', "⚠️ Sent, but it hasn't shown up in the sheet yet. Check your connection, then look at Today's Logs below.", 'error');
+    }
+  }
+
+  /* ================= SUMMARY ================= */
+
+  function updateSummary() {
+    const tk = todayKey();
+    const nappies = allNappies();
+    TWINS.forEach(t => {
+      const id = t.toLowerCase();
+      const feeds = DB.feed.filter(r => r.twin === t);
+      $(`${id}-total`).textContent = `${sum(feeds.filter(r => r.date === tk).map(r => r.amount))} ml`;
+
+      let last = null;
+      feeds.forEach(r => { const ts = timestampOf(r); if (ts !== null && ts <= Date.now() + 60000 && (last === null || ts > last)) last = ts; });
+      $(`${id}-last`).textContent = last === null ? 'Last feed: --' : `Last feed: ${agoText(last)}`;
+
+      const nap = sum(DB.nap.filter(r => r.twin === t && r.date === tk).map(r => r.mins));
+      const nap_n = nappies.filter(r => r.twin === t && r.date === tk).length;
+      $(`${id}-extra`).textContent = `😴 ${nap ? fmtMins(nap) : '--'} · 👶 ${nap_n}`;
     });
-    const line = (twin, color) => ({
-      label: `${twin} (${unit})`, data: series(twin), borderColor: color, backgroundColor: color,
-      tension: 0.3, spanGaps: true, pointRadius: 5, pointHoverRadius: 7, borderWidth: 3
-    });
-
-    document.getElementById('growth-note').innerText = dates.length ? '' : `No ${growthMetric} measurements logged yet.`;
-    if (growthChartInstance) growthChartInstance.destroy();
-    const opts = makeOptions(theme.line);
-    opts.scales.y.beginAtZero = false;
-    growthChartInstance = new Chart(document.getElementById('growthChart').getContext('2d'), {
-      type: 'line',
-      data: { labels: dates.map(d => d.slice(0, 5)), datasets: [line('Margot', COLOR_MARGOT), line('Marshall', COLOR_MARSHALL)] },
-      options: opts
-    });
+    const pumped = sum(DB.pumping.filter(r => r.date === tk).map(r => r.total));
+    $('pump-today').textContent = `🤱 Pumped today: ${pumped ? pumped + ' ml' : '--'}`;
   }
 
-  // ---------- THINGS WE NEED (shared shopping list, stored in the "Things We Need" sheet tab) ----------
-  let needs = [];        // [{ id, item }]
-  let needsPending = 0;  // in-flight changes; while > 0 we don't overwrite the list with a refresh
+  /* ================= LOG LIST (edit / delete) ================= */
 
-  function newNeedId() {
-    return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const recKey = r => `${r.type}|${r.row}|${r.raw.join('|')}`;
+  let confirming = null;
+  const busyKeys = new Set();
+  const expanded = {};
+
+  function sortMins(r) { return r.type === 'growth' ? -1 : timeToMins(r.type === 'nap' ? r.start : r.time); }
+
+  function entriesFor(key) {
+    return [].concat(DB.feed, DB.nappy, DB.pumping, DB.nap, DB.growth)
+      .filter(r => r.date === key)
+      .sort((a, b) => sortMins(b) - sortMins(a) || b.row - a.row);
   }
 
-  function needsStatus(msg) {
-    document.getElementById('needsStatus').innerText = msg || '';
+  function describe(r) {
+    if (r.type === 'feed') {
+      const sub = `${r.feedType || 'Feed'} · ${r.amount} ml` + (r.legacyKind ? ` · ${KIND_EMOJI[r.legacyKind]} ${r.legacyKind}` : '');
+      return { ico: '🍼', who: r.twin, title: `${r.twin} · ${r.time}`, sub, notes: r.notes };
+    }
+    if (r.type === 'nappy') return { ico: '👶', who: r.twin, title: `${r.twin} · ${r.time}`, sub: `${KIND_EMOJI[r.kind] || ''} ${r.kind || 'Nappy'}`.trim(), notes: r.notes };
+    if (r.type === 'pumping') return { ico: '🤱', who: null, title: `Pumping · ${r.time}`, sub: `${r.total} ml (L ${r.left} · R ${r.right})`, notes: r.notes };
+    if (r.type === 'nap') return { ico: '😴', who: r.twin, title: `${r.twin} · ${r.start}–${r.end}`, sub: `Nap · ${fmtMins(r.mins)}`, notes: r.notes };
+    const bits = [];
+    if (r.weight !== null) bits.push(`${r.weight} kg`);
+    if (r.length !== null) bits.push(`${r.length} cm`);
+    if (r.head !== null) bits.push(`head ${r.head} cm`);
+    return { ico: '📏', who: r.twin, title: `${r.twin} · Growth`, sub: bits.join(' · '), notes: r.notes };
   }
 
-  function renderNeeds() {
-    const list = document.getElementById('needsList');
-    list.innerHTML = '';
-    document.getElementById('needsCount').innerText =
-      needs.length ? `${needs.length} item${needs.length === 1 ? '' : 's'} on the list` : '';
+  function entryEl(r) {
+    const d = describe(r), key = recKey(r);
+    const el = mk('div', 'entry' + (busyKeys.has(key) ? ' busy' : ''));
+    const main = mk('div', 'entry-main');
+    const title = mk('div', 'entry-title');
+    if (d.who) { const dot = mk('i'); dot.style.background = twinColor(d.who); title.append(dot); }
+    title.append(document.createTextNode(d.title));
+    main.append(title, mk('div', 'entry-sub', d.sub));
+    if (d.notes) main.append(mk('div', 'entry-notes', d.notes));
 
-    if (!needs.length) {
-      list.innerHTML = '<div class="needs-empty">Nothing on the list 🎉</div>';
+    const act = mk('div', 'entry-actions');
+    if (busyKeys.has(key)) {
+      act.textContent = '…';
+    } else if (confirming === key) {
+      const yes = mk('button', 'confirm-btn yes', 'Delete'), no = mk('button', 'confirm-btn no', 'Keep');
+      yes.type = no.type = 'button';
+      yes.addEventListener('click', () => deleteRec(r));
+      no.addEventListener('click', () => { confirming = null; rerenderLists(); });
+      act.append(yes, no);
+    } else {
+      const ed = mk('button', 'icon-btn', '✏️'), del = mk('button', 'icon-btn', '🗑️');
+      ed.type = del.type = 'button';
+      ed.setAttribute('aria-label', 'Edit'); del.setAttribute('aria-label', 'Delete');
+      ed.addEventListener('click', () => openEdit(r));
+      del.addEventListener('click', () => { confirming = key; rerenderLists(); });
+      act.append(ed, del);
+    }
+    el.append(mk('div', 'entry-ico', d.ico), main, act);
+    return el;
+  }
+
+  function renderEntries(hostId, key, limit) {
+    const host = $(hostId);
+    const list = entriesFor(key);
+    host.replaceChildren();
+    if (!list.length) {
+      host.append(mk('div', 'empty', key === todayKey() ? 'Nothing logged yet today.' : 'Nothing logged on this day.'));
       return;
     }
+    const shown = (limit && !expanded[hostId]) ? list.slice(0, limit) : list;
+    shown.forEach(r => host.append(entryEl(r)));
+    if (limit && list.length > limit) {
+      const b = mk('button', 'pill more-btn', expanded[hostId] ? 'Show less' : `Show all ${list.length}`);
+      b.type = 'button';
+      b.addEventListener('click', () => { expanded[hostId] = !expanded[hostId]; rerenderLists(); });
+      host.append(b);
+    }
+  }
+
+  function rerenderLists() {
+    renderEntries('todayLogs', todayKey(), 6);
+    if (analyticsActive) renderEntries('dayLogs', activeKey());
+  }
+
+  async function deleteRec(r) {
+    const key = recKey(r);
+    confirming = null;
+    busyKeys.add(key);
+    rerenderLists();
+    let ok = false;
+    try {
+      await post({ type: 'delete', tab: r.type, row: r.row, expect: r.raw });
+      ok = await refreshUntilChanged();
+      toast(ok ? 'Deleted 🗑️' : "⚠️ Couldn't confirm the delete. Check the sheet.");
+    } catch (e) {
+      toast("⚠️ Couldn't delete. Check your connection.");
+    }
+    busyKeys.delete(key);
+    rerenderLists();
+  }
+
+  /* ---- edit sheet ---- */
+  let editCtx = null;
+
+  function openEdit(r) {
+    const form = buildForm(r.type, 'edit');
+    form.set(r.values);
+    editCtx = { rec: r, form };
+    $('editTitle').textContent = `Edit ${FORM_DEFS[r.type].noun}`;
+    $('editBody').replaceChildren(form.root);
+    setStatus('editStatus', '', '');
+    $('editSave').disabled = false;
+    $('editModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeEdit() {
+    $('editModal').classList.remove('open');
+    document.body.style.overflow = '';
+    editCtx = null;
+  }
+  const sameValues = (a, b) => Object.keys(a).every(k => String(a[k] === null || a[k] === undefined ? '' : a[k]) === String(b[k] === null || b[k] === undefined ? '' : b[k]));
+
+  async function saveEdit() {
+    if (!editCtx) return;
+    const { rec, form } = editCtx;
+    const err = form.validate();
+    if (err) return setStatus('editStatus', err, 'error');
+    const v = form.get();
+    if (sameValues(v, rec.values)) return closeEdit();
+    $('editSave').disabled = true;
+    setStatus('editStatus', 'Saving...', '');
+    try {
+      await post({ type: 'edit', tab: rec.type, row: rec.row, expect: rec.raw, values: v });
+    } catch (e) {
+      $('editSave').disabled = false;
+      return setStatus('editStatus', "⚠️ Couldn't save. Check your connection.", 'error');
+    }
+    const ok = await refreshUntilChanged();
+    if (ok) { closeEdit(); toast('Updated ✅'); }
+    else {
+      $('editSave').disabled = false;
+      setStatus('editStatus', "⚠️ Couldn't confirm the change in the sheet. Close this and check the entry.", 'error');
+    }
+  }
+
+  /* ================= ANALYTICS ================= */
+
+  let selectedKey = null;       // null = follow today
+  const activeKey = () => selectedKey || todayKey();
+  const charts = {};
+  const dailyState = { sel: -1, keys: [], dayW: 44, muted: '#6b7280', accent: '#7c3aed' };
+  let growthMetric = 'weight';
+  let dailyFirst = true;
+
+  function chartTheme() {
+    const cs = getComputedStyle(document.documentElement);
+    const muted = cs.getPropertyValue('--muted').trim() || '#6b7280';
+    const line = cs.getPropertyValue('--line').trim() || '#e9e5f0';
+    const accent = cs.getPropertyValue('--accent').trim() || '#7c3aed';
+    Chart.defaults.color = muted;
+    Chart.defaults.font.family = 'Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    Chart.defaults.font.weight = '700';
+    return { muted, line, accent };
+  }
+
+  function baseOptions(line, opts = {}) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 16 } },
+        tooltip: { cornerRadius: 10, padding: 10 }
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false }, ticks: opts.xTicks || {}, stacked: !!opts.stacked },
+        y: { beginAtZero: true, grid: { color: line }, border: { display: false }, ticks: opts.yTicks || {}, stacked: !!opts.stacked }
+      }
+    };
+  }
+  const barDS = (label, data, color, radius) => ({ label, data, backgroundColor: color, borderRadius: radius, borderSkipped: false, maxBarThickness: 30 });
+
+  function makeChart(id, config) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart($(id).getContext('2d'), config);
+    return charts[id];
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // Highlights the selected day's column on the daily chart
+  const selectedDayPlugin = {
+    id: 'selectedDay',
+    beforeDatasetsDraw(chart) {
+      if (dailyState.sel < 0) return;
+      const x = chart.scales.x, a = chart.chartArea;
+      if (!x || !a) return;
+      const n = chart.data.labels.length;
+      const step = n > 1 ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0)) : a.width;
+      const cx = x.getPixelForValue(dailyState.sel);
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.15)';
+      roundRectPath(ctx, cx - step / 2 + 2, a.top - 6, step - 4, chart.height - a.top, 10);
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+
+  // Writes each day's ml above its bars (vertical, so it fits the narrow columns)
+  const barLabelPlugin = {
+    id: 'barLabels',
+    afterDatasetsDraw(chart) {
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = dailyState.muted;
+      ctx.font = '800 10px Nunito, -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      chart.data.datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di);
+        if (meta.hidden) return;
+        meta.data.forEach((bar, i) => {
+          const v = ds.data[i];
+          if (!v) return;
+          ctx.save();
+          ctx.translate(bar.x, bar.y - 5);
+          ctx.rotate(-Math.PI / 2);
+          ctx.fillText(String(v), 0, 0);
+          ctx.restore();
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  // Every day from the first log to today (or the latest log), at least 7
+  function dailyKeys() {
+    const all = [].concat(DB.feed, DB.nappy, DB.pumping, DB.nap, DB.growth);
+    const today = dateFromKey(todayKey()).getTime();
+    let min = today, max = today;
+    all.forEach(r => { const t = dateFromKey(r.date).getTime(); if (t < min) min = t; if (t > max) max = t; });
+    const keys = [];
+    for (let d = new Date(min); d.getTime() <= max; d.setDate(d.getDate() + 1)) keys.push(keyFromDate(d));
+    while (keys.length < 7) keys.unshift(addDays(keys[0], -1));
+    return keys.length > 400 ? keys.slice(-400) : keys;
+  }
+
+  function dayLabel(k) {
+    const d = dateFromKey(k);
+    return [d.toLocaleDateString('en-GB', { weekday: 'short' }), `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })}`];
+  }
+
+  function ensureDayVisible(idx) {
+    const wrap = $('dailyScroll');
+    const left = idx * dailyState.dayW, right = left + dailyState.dayW, vw = wrap.clientWidth;
+    if (left < wrap.scrollLeft || right > wrap.scrollLeft + vw) {
+      wrap.scrollLeft = Math.max(0, left - (vw - dailyState.dayW) / 2);
+    }
+  }
+
+  function renderDaily(theme) {
+    const wrap = $('dailyScroll'), inner = $('dailyInner');
+    const prevScroll = wrap.scrollLeft;
+    const keys = dailyKeys();
+    const vw = wrap.clientWidth || 300;
+    const dayW = Math.max(40, Math.floor(vw / 7));
+    Object.assign(dailyState, { keys, dayW, muted: theme.muted, accent: theme.accent, sel: keys.indexOf(activeKey()) });
+    inner.style.width = Math.max(vw, keys.length * dayW) + 'px';
+
+    const m = {}, s = {};
+    keys.forEach(k => { m[k] = 0; s[k] = 0; });
+    DB.feed.forEach(r => {
+      if (!(r.date in m)) return;
+      if (r.twin === 'Margot') m[r.date] += r.amount;
+      if (r.twin === 'Marshall') s[r.date] += r.amount;
+    });
+
+    makeChart('dailyChart', {
+      type: 'bar',
+      data: { labels: keys.map(dayLabel), datasets: [barDS('Margot (ml)', keys.map(k => m[k]), COLOR_MARGOT, 6), barDS('Marshall (ml)', keys.map(k => s[k]), COLOR_MARSHALL, 6)] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        events: ['click'], // taps select a day; also keeps horizontal swiping smooth
+        onClick: (evt, els, chart) => {
+          const idx = chart.scales.x.getValueForPixel(evt.x);
+          if (idx >= 0 && idx < dailyState.keys.length) selectDay(dailyState.keys[idx]);
+        },
+        layout: { padding: { top: 4 } },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { autoSkip: false, maxRotation: 0, font: { size: 11 }, color: ctx => ctx.index === dailyState.sel ? theme.accent : theme.muted } },
+          y: { beginAtZero: true, grace: '22%', grid: { color: theme.line }, border: { display: false }, ticks: { display: false } }
+        }
+      },
+      plugins: [selectedDayPlugin, barLabelPlugin]
+    });
+
+    if (dailyFirst) { dailyFirst = false; ensureDayVisible(dailyState.sel); }
+    else wrap.scrollLeft = prevScroll;
+  }
+
+  function selectDay(key) {
+    selectedKey = key === todayKey() ? null : key;
+    dailyState.sel = dailyState.keys.indexOf(activeKey());
+    if (charts.dailyChart) charts.dailyChart.update('none');
+    ensureDayVisible(dailyState.sel);
+    updateDayUI();
+    renderDayCharts(chartTheme());
+    renderEntries('dayLogs', activeKey());
+  }
+
+  function updateDayUI() {
+    const k = activeKey();
+    $('dayLabel').textContent = k === todayKey() || k === addDays(todayKey(), -1)
+      ? `${prettyKey(k)} · ${dateFromKey(k).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+      : prettyKey(k);
+    document.querySelectorAll('.day-tag').forEach(el => { el.textContent = '· ' + prettyKey(k); });
+    $('dayPrev').disabled = dailyState.sel <= 0;
+    $('dayNext').disabled = dailyState.sel < 0 || dailyState.sel >= dailyState.keys.length - 1;
+    $('dayToday').style.display = selectedKey ? '' : 'none';
+  }
+
+  // The four charts that follow the selected day
+  function renderDayCharts(theme) {
+    const key = activeKey();
+    const hours = Array.from({ length: 24 }, (_, i) => `${pad2(i)}:00`);
+    const empty = () => new Array(24).fill(0);
+    const xt = { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 };
+
+    // Feeds by hour
+    const fm = empty(), fs = empty();
+    DB.feed.filter(r => r.date === key).forEach(r => {
+      const h = hourOf(r.time);
+      if (h < 0) return;
+      if (r.twin === 'Margot') fm[h] += r.amount;
+      if (r.twin === 'Marshall') fs[h] += r.amount;
+    });
+    makeChart('feedChart', { type: 'bar',
+      data: { labels: hours, datasets: [barDS('Margot (ml)', fm, COLOR_MARGOT, 4), barDS('Marshall (ml)', fs, COLOR_MARSHALL, 4)] },
+      options: baseOptions(theme.line, { xTicks: xt }) });
+    $('feed-note').textContent = sum(fm) + sum(fs) ? `Margot ${sum(fm)} ml · Marshall ${sum(fs)} ml` : 'No feeds logged on this day.';
+
+    // Nappies
+    const kinds = ['Wet', 'Dirty', 'Wet & Dirty'];
+    const nap = { Margot: [0, 0, 0], Marshall: [0, 0, 0] };
+    allNappies().filter(r => r.date === key).forEach(r => { if (nap[r.twin] && kinds.includes(r.kind)) nap[r.twin][kinds.indexOf(r.kind)]++; });
+    makeChart('nappyChart', { type: 'bar',
+      data: { labels: kinds, datasets: [barDS('Margot', nap.Margot, COLOR_MARGOT, 10), barDS('Marshall', nap.Marshall, COLOR_MARSHALL, 10)] },
+      options: baseOptions(theme.line, { yTicks: { stepSize: 1, precision: 0 } }) });
+    const nm = sum(nap.Margot), ns = sum(nap.Marshall);
+    $('nappy-note').textContent = nm + ns ? `Margot ${nm} · Marshall ${ns}` : 'No nappies logged on this day.';
+
+    // Naps: minutes asleep in each hour
+    const nm_ = empty(), ns_ = empty();
+    DB.nap.filter(r => r.date === key).forEach(r => {
+      const target = r.twin === 'Margot' ? nm_ : r.twin === 'Marshall' ? ns_ : null;
+      let t = timeToMins(r.start), left = r.mins;
+      if (!target || t < 0) return;
+      while (left > 0) {
+        const chunk = Math.min(left, 60 - (t % 60));
+        target[Math.floor((t % 1440) / 60)] += chunk;
+        t += chunk; left -= chunk;
+      }
+    });
+    makeChart('napChart', { type: 'bar',
+      data: { labels: hours, datasets: [barDS('Margot (mins)', nm_, COLOR_MARGOT, 4), barDS('Marshall (mins)', ns_, COLOR_MARSHALL, 4)] },
+      options: baseOptions(theme.line, { xTicks: xt }) });
+    $('nap-note').textContent = sum(nm_) + sum(ns_) ? `Margot ${fmtMins(sum(nm_))} · Marshall ${fmtMins(sum(ns_))}` : 'No naps logged on this day.';
+
+    // Pumping by hour, left and right stacked
+    const pl = empty(), pr = empty();
+    DB.pumping.filter(r => r.date === key).forEach(r => {
+      const h = hourOf(r.time);
+      if (h < 0) return;
+      pl[h] += r.left; pr[h] += r.right;
+    });
+    makeChart('pumpChart', { type: 'bar',
+      data: { labels: hours, datasets: [barDS('Left (ml)', pl, '#a78bfa', 4), barDS('Right (ml)', pr, '#34d399', 4)] },
+      options: baseOptions(theme.line, { xTicks: xt, stacked: true }) });
+    $('pump-note').textContent = sum(pl) + sum(pr) ? `Total ${sum(pl) + sum(pr)} ml` : 'No pumping logged on this day.';
+  }
+
+  // Growth over time (all dates)
+  function renderGrowth(theme) {
+    const metric = growthMetric;
+    const unit = metric === 'weight' ? 'kg' : 'cm';
+    const rows = DB.growth.filter(r => r[metric] !== null);
+    const dates = [...new Set(rows.map(r => r.date))].sort((a, b) => dateFromKey(a) - dateFromKey(b));
+    const series = twin => dates.map(d => { const hit = rows.filter(r => r.date === d && r.twin === twin).pop(); return hit ? hit[metric] : null; });
+    const line = (twin, color) => ({ label: `${twin} (${unit})`, data: series(twin), borderColor: color, backgroundColor: color,
+      tension: 0.3, spanGaps: true, pointRadius: 5, pointHoverRadius: 7, borderWidth: 3 });
+    const opts = baseOptions(theme.line);
+    opts.scales.y.beginAtZero = false;
+    makeChart('growthChart', { type: 'line',
+      data: { labels: dates.map(d => d.slice(0, 5)), datasets: [line('Margot', COLOR_MARGOT), line('Marshall', COLOR_MARSHALL)] },
+      options: opts });
+    $('growth-note').textContent = dates.length ? '' : `No ${metric} measurements logged yet.`;
+  }
+
+  function renderAnalytics() {
+    if (!dbLoaded || typeof Chart === 'undefined') return;
+    const theme = chartTheme();
+    renderDaily(theme);
+    updateDayUI();
+    renderDayCharts(theme);
+    renderGrowth(theme);
+    renderEntries('dayLogs', activeKey());
+    analyticsDirty = false;
+  }
+
+  /* ================= THINGS WE NEED (shared list, "Things We Need" sheet tab) ================= */
+
+  let needs = [];        // [{ id, item }]
+  let needsPending = 0;  // in-flight changes; while > 0 a refresh won't overwrite the list
+
+  const newNeedId = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const needsStatus = msg => { $('needsStatus').textContent = msg || ''; };
+
+  function renderNeeds() {
+    const list = $('needsList');
+    list.replaceChildren();
+    $('needsCount').textContent = needs.length ? `${needs.length} item${needs.length === 1 ? '' : 's'} on the list` : '';
+    if (!needs.length) { list.append(mk('div', 'empty', 'Nothing on the list 🎉')); return; }
     needs.forEach(n => {
-      const li = document.createElement('li');
-      li.className = 'need-item';
-      const label = document.createElement('span');
-      label.textContent = n.item;
-      const btn = document.createElement('button');
+      const row = mk('div', 'need-item');
+      const btn = mk('button', 'need-remove', '✕');
       btn.type = 'button';
-      btn.className = 'need-remove';
-      btn.textContent = '✕';
       btn.setAttribute('aria-label', 'Remove ' + n.item);
       btn.addEventListener('click', () => removeNeed(n.id));
-      li.append(label, btn);
-      list.appendChild(li);
+      row.append(mk('span', '', n.item), btn);
+      list.append(row);
     });
   }
 
   function loadNeeds() {
     if (needsPending > 0) return;
-    fetch(WEB_APP_URL + '?type=needs', { redirect: "follow" })
+    fetch(`${WEB_APP_URL}?type=needs&_=${Date.now()}`, { redirect: "follow" })
       .then(res => res.json())
       .then(data => {
         if (needsPending > 0 || !Array.isArray(data)) return;
-        needs = data.slice(1)
-          .filter(r => r[0] && r[1])
-          .map(r => ({ id: String(r[0]), item: String(r[1]) }));
+        needs = data.slice(1).filter(r => r[0] && r[1]).map(r => ({ id: String(r[0]), item: String(r[1]) }));
         needsStatus('');
         renderNeeds();
       })
@@ -1240,28 +1401,20 @@
 
   function sendNeed(payload) {
     needsPending++;
-    return fetch(WEB_APP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(() => { needsPending--; setTimeout(loadNeeds, 800); })
-    .catch(err => {
-      needsPending--;
-      console.error("Error saving list change:", err);
-      needsStatus("Couldn't save that change. Check your connection.");
-      loadNeeds();
-    });
+    return post(payload)
+      .then(() => { needsPending--; setTimeout(loadNeeds, 500); })
+      .catch(err => {
+        needsPending--;
+        console.error("Error saving list change:", err);
+        needsStatus("Couldn't save that change. Check your connection.");
+        loadNeeds();
+      });
   }
 
   function addNeed(text) {
     const item = text.trim().replace(/\s+/g, ' ');
     if (!item) return;
-    if (needs.some(n => n.item.toLowerCase() === item.toLowerCase())) {
-      needsStatus(`"${item}" is already on the list.`);
-      return;
-    }
+    if (needs.some(n => n.item.toLowerCase() === item.toLowerCase())) { needsStatus(`"${item}" is already on the list.`); return; }
     needsStatus('');
     const id = newNeedId();
     needs.push({ id, item });
@@ -1275,68 +1428,74 @@
     sendNeed({ type: 'need_remove', id });
   }
 
-  document.getElementById('needForm').addEventListener('submit', function(e) {
+  /* ================= WIRING ================= */
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id === tabId));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
+    analyticsActive = tabId === 'analytics-tab';
+    if (analyticsActive) {
+      // wait a frame so the tab is visible (and has real dimensions) before drawing charts
+      requestAnimationFrame(() => { if (dbLoaded) renderAnalytics(); });
+      loadAll().catch(() => {});
+    }
+    if (tabId === 'log-tab') { if (logForm) logForm.freshen(); loadAll().catch(() => {}); }
+    if (tabId === 'needs-tab') loadNeeds();
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  $('logSubmit').addEventListener('click', submitLog);
+  $('editSave').addEventListener('click', saveEdit);
+  $('editCancel').addEventListener('click', closeEdit);
+  $('editModal').addEventListener('click', e => { if (e.target === $('editModal')) closeEdit(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && editCtx) closeEdit(); });
+
+  $('dayPrev').addEventListener('click', () => { const i = dailyState.sel; if (i > 0) selectDay(dailyState.keys[i - 1]); });
+  $('dayNext').addEventListener('click', () => { const i = dailyState.sel; if (i >= 0 && i < dailyState.keys.length - 1) selectDay(dailyState.keys[i + 1]); });
+  $('dayToday').addEventListener('click', () => selectDay(todayKey()));
+  $('dayJump').addEventListener('click', () => $('dayLogsCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  document.querySelectorAll('.pill[data-metric]').forEach(p => p.addEventListener('click', () => {
+    growthMetric = p.dataset.metric;
+    document.querySelectorAll('.pill[data-metric]').forEach(x => x.classList.toggle('active', x === p));
+    if (dbLoaded) renderGrowth(chartTheme());
+  }));
+
+  $('needForm').addEventListener('submit', e => {
     e.preventDefault();
-    const input = document.getElementById('needInput');
+    const input = $('needInput');
     addNeed(input.value);
     input.value = '';
     input.focus();
   });
 
-  // Pick up changes made on the other phone whenever the app comes back to the front
+  // Coming back to the app: refresh everything, and move the time wheels on to "now"
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' &&
-        document.getElementById('needs-tab').classList.contains('active')) {
-      loadNeeds();
-    }
+    if (document.visibilityState !== 'visible') return;
+    $('todayLabel').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (logForm) logForm.freshen();
+    loadAll().catch(() => {});
+    if ($('needs-tab').classList.contains('active')) loadNeeds();
   });
 
-  // Initial load
-  fetchDashboardData();
-  loadNeeds();
-
-  // Form Submission
-  document.getElementById('feedForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    const status = document.getElementById('status');
-
-    btn.disabled = true;
-    status.innerText = "Saving...";
-    status.style.color = "";
-
-    const payload = {
-      twin: document.querySelector('input[name="twin"]:checked').value,
-      time: `${hourWheel.value}:${minuteWheel.value}`,
-      feedType: document.querySelector('input[name="feedType"]:checked').value,
-      amount: amountWheel.value,
-      nappy: document.querySelector('input[name="nappy"]:checked').value,
-      notes: document.getElementById('notes').value
-    };
-
-    fetch(WEB_APP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(() => {
-      status.innerText = "✅ Logged successfully!";
-      status.style.color = "#16a34a";
-      document.getElementById('notes').value = '';
-      btn.disabled = false;
-      setTimeout(fetchDashboardData, 1200);
-      setTimeout(() => { status.innerText = ""; }, 4000);
-    })
-    .catch(err => {
-      status.innerText = "⚠️ Error logging feed.";
-      status.style.color = "#dc2626";
-      btn.disabled = false;
-    });
+  window.addEventListener('resize', () => {
+    clearTimeout(window._rz);
+    window._rz = setTimeout(() => { if (analyticsActive && dbLoaded) renderDaily(chartTheme()); }, 250);
   });
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onTheme = () => { if (analyticsActive && dbLoaded) renderAnalytics(); };
+    if (mq.addEventListener) mq.addEventListener('change', onTheme);
+  }
+
+  setInterval(() => { if (dbLoaded) updateSummary(); }, 60000);
+
+  /* ================= START ================= */
+  $('todayLabel').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  buildTypeBar();
+  showLogForm('feed');
+  loadAll().catch(() => {});
 </script>
 
 </body>
 </html>
-
 
